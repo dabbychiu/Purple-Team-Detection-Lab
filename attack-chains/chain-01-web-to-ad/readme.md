@@ -20,7 +20,7 @@ DMZ webshell → 憑證獲取 → LDAP 大規模枚舉 → kerberoast → WriteD
 |stage 6 : T1134.001 - 權限提升      | ✗失敗 | GodPotato被MDE攔截|
 |stage 7 : T1087.002/T1018 LDAP枚舉  | ✓成功 | 發現用戶跟SPN|
 |stage 8 : T1558.003 - Kerberoasting| ✓成功 | 獲得3個RC4加密的TGS Hash|
-|stage 9 : T1484.002 - WriteDACL    |[]測試中| |
+|stage 9 : T1484.002 - WriteDACL    |✓成功| |於DC01直接作srv_backup的設定|
 |stage 10 : T1003.006 - DCSync      |[]測試中||
 |KQL 偵測規則 | ||
 
