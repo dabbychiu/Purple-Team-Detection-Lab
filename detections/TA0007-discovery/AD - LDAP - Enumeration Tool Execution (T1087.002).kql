@@ -1,0 +1,15 @@
+//============================================================================
+//Rule : AD - LDAP - Enumeration Tool Execution
+//MITRE : T1087.002 (Account Discovery: Domain Account)
+//Data Source : SecurityEvent , EventID : 4688
+//Prerequisite : 啟用 "Audit Process Creation (Success)" + GPO "Include command line in process creation events"
+//Type : 以已知列舉工具名稱偵測網域帳號 / SPN 大量列舉
+//Severity : MEDIUM - 工具名稱明確，但可能為授權紅隊 / 滲透測試合法使用
+//Known FP : 授權滲透測試 / IT 稽核腳本 ； GetUserSPNs 實為 Kerberoasting(T1558.003) 前置
+//Tuning : allowlist 已授權測試主機；GetUserSPNs 命中時建議關聯後續 4769 事件
+//============================================================================
+SecurityEvent
+| where EventID == 4688
+| where CommandLine has_any ("GetADUsers", "GetADComputers", "GetUserSPNs", "ldapsearch")
+| project TimeGenerated, Computer, CommandLine
+| sort by TimeGenerated desc
