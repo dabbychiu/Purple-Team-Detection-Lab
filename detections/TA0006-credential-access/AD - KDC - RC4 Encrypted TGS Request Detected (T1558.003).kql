@@ -1,3 +1,13 @@
+//============================================================================
+//Rule : AD - KDC - RC4 Encrypted TGS Request Detected
+//MITRE : T1558.003 (Steal or Forge Kerberos Tickets: Kerberoasting)
+//Data Source : SecurityEvent , EventID : 4769
+//Prerequisite : DC 啟用 "Audit Kerberos Service Ticket Operations (Success)"
+//Type : 服務票證以 RC4(0x17) 加密請求 — Kerberoasting 常見降級特徵
+//Severity : MEDIUM - RC4 為可離線破解格式，但舊系統仍可能合法使用
+//Known FP : 尚未升級 AES 的舊版應用 / 服務帳號 / 相容性設定
+//Tuning : allowlist 已知合法 RC4 服務帳號；RC4 Count 門檻可視環境噪音上調；
+//============================================================================
 SecurityEvent
 | where EventID == 4769
 | extend
