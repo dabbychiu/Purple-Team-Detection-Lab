@@ -33,8 +33,8 @@ DMZ webshell → 憑證獲取 → LDAP 大規模枚舉 → kerberoast → WriteD
 缺口:目前 lab 未啟用 Sysmon file monitoring,因此無法產生可驗證的偵測規則。若補齊環境,構想邏輯如下:
 
 - **Stage 1(初次落地)**:以 Sysmon EventID 11(FileCreate)監控 web root 路徑,篩選副檔名為 `.aspx/.ashx/.asp` 且建立程序為 `w3wp.exe`——web 伺服器自己寫入可執行網頁本身就是異常行為,訊號比對 IIS log 更明確。若無 Sysmon,退而求其次可用 W3C IIS Log,比對「已知合法部署清單」外出現的新路徑請求。
-- **Stage 3(持久化)**:沿用同一組 ,差異在於關注「同一來源短時間內對多個不同路徑寫入」的模式(備援 webshell 特徵),或監控 `web.config` 異動(常見於持久化搭配設定變更)。
+- **Stage 3(持久化)**:沿用同一組資料來源 ,差異在於關注「同一來源短時間內對多個不同路徑寫入」的模式(備援 webshell 特徵),或監控 `web.config` 異動(常見於持久化搭配設定變更)。
 
 **Stage 6(T1134.001 - GodPotato 被 MDE 攔截)**
 
-此階段攻擊本身被 MDE 成功攔截,未造成實際提權。
+GodPotato 被 MDE 成功攔截,提權未成功:若 MDE alert 已同步進 Sentinel 的 SecurityAlert 表,可針對alert分類建關聯規則,確保 SOC 端不用盯著 MDE console 也能看見。
