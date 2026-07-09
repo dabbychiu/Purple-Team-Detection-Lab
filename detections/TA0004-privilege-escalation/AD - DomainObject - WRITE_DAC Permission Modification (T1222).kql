@@ -1,3 +1,13 @@
+//============================================================================
+//Rule : AD - DomainObject - WRITE DAC Permission Modification
+//MITRE : T1222 (File and Directory Permissions Modification)
+//Data Source : SecurityEvent , EventID : 4662
+//Prerequisite : DC 上網域物件啟用 SACL 稽核 (Audit Directory Service Access - Success)
+//Type : 對目錄物件修改 DACL (WRITE_DAC 0x40000) — 常為 DCSync / 提權前置
+//Severity : HIGH - 授予自身複寫權限的前一步 (WriteDACL -> DCSync 攻擊鏈)
+//Known FP : 合法權限委派變更 / AD 管理操作
+//Tuning : 建議與 DCSync 規則做時序關聯
+//============================================================================
 SecurityEvent 
 | where EventID == 4662 
 | where TimeGenerated > ago(2h) 
