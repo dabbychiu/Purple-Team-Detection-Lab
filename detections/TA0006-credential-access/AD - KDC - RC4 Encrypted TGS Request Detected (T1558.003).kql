@@ -1,0 +1,21 @@
+SecurityEvent
+| where EventID == 4769
+| extend
+    ServiceName = extract(@'<Data Name="ServiceName">([^<]+)</Data>', 1, tostring(EventData)),
+    TargetUserName = extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData)),
+    TicketEncryptionType = extract(@'<Data Name="TicketEncryptionType">([^<]+)</Data>', 1, tostring(EventData)),
+    IpAddress = extract(@'<Data Name="IpAddress">([^<]+)</Data>', 1, tostring(EventData))
+| where TicketEncryptionType == "0x17"  // RC4 加密
+| where ServiceName !startswith "krbtgt"
+| summarize 
+    RC4Count = count(),
+    Services = make_set(ServiceName, 10)
+    by TargetUserName, IpAddress, bin(TimeGenerated, 5m)
+| where RC4Count >= 1
+| project
+    TimeGenerated,
+    TargetUserName,
+    IpAddress,
+    RC4Count,
+    Services
+| order by RC4Count desc

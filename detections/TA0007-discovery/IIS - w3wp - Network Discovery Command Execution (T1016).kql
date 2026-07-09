@@ -1,0 +1,28 @@
+// 偵測 w3wp.exe 執行網路探索指令
+SecurityEvent
+| where EventID == 4688
+| where Computer has "DMZ"
+| where ParentProcessName has "w3wp.exe"
+| where CommandLine has_any (
+    "ipconfig",
+    "arp",
+    "net view",
+    "net user",
+    "net localgroup",
+    "whoami",
+    "hostname",
+    "systeminfo",
+    "tasklist",
+    "netstat",
+    "ping",
+    "nslookup",
+    "route print"
+)
+| project
+    TimeGenerated,
+    Computer,
+    Account,
+    ParentProcessName,
+    NewProcessName,
+    CommandLine
+| sort by TimeGenerated desc

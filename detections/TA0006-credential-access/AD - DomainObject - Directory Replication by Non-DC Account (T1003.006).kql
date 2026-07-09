@@ -1,0 +1,19 @@
+SecurityEvent
+| where EventID == 4662
+| where TimeGenerated > ago(24h)
+| where ObjectServer == "DS"
+| where AccessMask == "0x100"
+| where Properties has_any (
+    "1131f6aa-9c07-11d1-f79f-00c04fc2dcd2",
+    "1131f6ad-9c07-11d1-f79f-00c04fc2dcd2"
+)
+| where SubjectUserName !endswith "$"
+| where SubjectUserName != "-"
+| project 
+    TimeGenerated,
+    SubjectAccount,
+    Computer,
+    ObjectServer,
+    AccessMask,
+    Properties
+| order by TimeGenerated desc
