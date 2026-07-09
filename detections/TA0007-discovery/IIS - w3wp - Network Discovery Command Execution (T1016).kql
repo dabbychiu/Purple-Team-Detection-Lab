@@ -15,7 +15,8 @@ SecurityEvent
     "w3wp.exe",
     "cmd.exe",
     "powershell.exe"
-)| where CommandLine has_any (
+)
+| where CommandLine has_any (
     "ipconfig",
     "arp",
     "net view",
