@@ -1,3 +1,13 @@
+//============================================================================
+//Rule : AD - KDC - Kerberoasting TGS Requests
+//MITRE : T1558.003 (Steal or Forge Kerberos Tickets: Kerberoasting)
+//Data Source : SecurityEvent , EventID : 4769
+//Prerequisite : DC 啟用 "Audit Kerberos Service Ticket Operations (Success)"
+//Type : 單一帳號短時間內大量請求服務票證 (SPN 掃描特徵)
+//Severity : HIGH - 大量 TGS 請求為 Kerberoasting 核心行為特徵
+//Known FP : 掃描器 / 資產盤點工具 / 應用集中啟動；機器帳號($)正常大量請求
+//Tuning : 已排除 krbtgt；FP 過多可加 Account !endswith "$" 或提高 RequestCount 門檻
+//============================================================================
 SecurityEvent
 | where EventID == 4769
 | extend
