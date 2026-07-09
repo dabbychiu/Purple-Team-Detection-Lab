@@ -1,0 +1,8 @@
+SecurityEvent 
+| where EventID == 4662 
+| where TimeGenerated > ago(2h) 
+| where ObjectServer == "DS" 
+| where AccessMask == "0x40000" 
+| where SubjectUserName !endswith "$" 
+| project TimeGenerated, SubjectAccount, Computer, ObjectServer, ObjectName, ObjectType, AccessMask, Properties 
+| order by TimeGenerated desc

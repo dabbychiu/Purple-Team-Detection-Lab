@@ -1,0 +1,23 @@
+SecurityEvent
+| where EventID == 4769
+| extend
+    ServiceName = extract(@'<Data[^>]*Name="ServiceName"[^>]*>([^<]+)</Data>', 1, tostring(EventData)),
+    TargetUserName = extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData)),
+    IpAddress = extract(@'<Data Name="IpAddress">([^<]+)</Data>', 1, tostring(EventData))
+| summarize 
+    RequestCount = count(),
+    Services = make_set(ServiceName, 10),
+    Targets = make_set(TargetUserName, 10),
+    IPs = make_set(IpAddress, 10),
+    Events = make_list(pack('Time', TimeGenerated, 'Service', ServiceName, 'Target', TargetUserName, 'IP', IpAddress), 20)
+    by Account, bin(TimeGenerated, 5m)
+| where RequestCount >= 3
+| project
+    TimeGenerated,
+    Account,
+    RequestCount,
+    Services,
+    Targets,
+    IPs,
+    Events
+| sort by TimeGenerated desc

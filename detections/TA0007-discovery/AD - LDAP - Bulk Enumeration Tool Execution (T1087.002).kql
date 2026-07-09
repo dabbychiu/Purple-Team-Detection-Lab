@@ -1,0 +1,4 @@
+SecurityEvent
+| where EventID == 4688
+| where CommandLine has_any ("GetADUsers", "GetADComputers", "GetUserSPNs", "ldapsearch")
+| project TimeGenerated, Computer, CommandLine
