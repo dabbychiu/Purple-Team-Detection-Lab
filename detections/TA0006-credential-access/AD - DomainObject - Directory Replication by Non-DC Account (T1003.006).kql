@@ -10,7 +10,6 @@
 //============================================================================
 SecurityEvent
 | where EventID == 4662
-| where TimeGenerated > ago(24h)
 | where ObjectServer == "DS"
 | where AccessMask == "0x100"
 | where Properties has_any (
