@@ -11,7 +11,7 @@
 SecurityEvent
 | where EventID == 4688
 | where Computer has "DMZ"
-| where ParentProcessName has "w3wp.exe"
+| where ParentProcessName has_any("w3wp.exe","cmd.exe","powershell.exe") 
 | where CommandLine has_any (
     "ipconfig",
     "arp",
