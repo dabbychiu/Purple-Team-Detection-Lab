@@ -10,7 +10,6 @@
 //============================================================================
 SecurityEvent 
 | where EventID == 4662 
-| where TimeGenerated > ago(2h) 
 | where ObjectServer == "DS" 
 | where AccessMask == "0x40000" 
 | where SubjectUserName !endswith "$" 
