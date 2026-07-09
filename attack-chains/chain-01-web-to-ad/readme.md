@@ -38,3 +38,21 @@ DMZ webshell → 憑證獲取 → LDAP 大規模枚舉 → kerberoast → WriteD
 **Stage 6(T1134.001 - GodPotato 被 MDE 攔截)**
 
 GodPotato 被 MDE 成功攔截,提權未成功:若 MDE alert 已同步進 Sentinel 的 SecurityAlert 表,可針對alert分類建關聯規則,確保 SOC 端不用盯著 MDE console 也能看見。
+
+
+## Stage 9 補充說明:自我提權嘗試與實際執行落差
+
+**前置條件**:`svc_backup` 為 `Backup-Admins` 群組成員,該群組對 Domain Root 具有 WriteDACL 權限
+（模擬企業備份帳號過度授權的常見錯誤配置）。
+
+**原始設計**:利用 `svc_backup` 竊取的憑證,透過 `impacket-dacledit` 自行修改 Domain Root
+ACL,授予自己 DCSync 複寫權——完整展示「無需人工介入的自動化提權」。
+
+**實際執行**:`impacket-dacledit` 執行失敗,錯誤訊息指向 LDAP 連線層級被拒絕，而非 AD 物件權限層級的拒絕。這代表無法排除
+`Backup-Admins` 對 Domain Root 確實具有 WriteDACL 權限的可能性——工具連線都沒能成功建立，
+自然也就無從驗證權限本身是否有效。為了讓後續 Stage 10 DCSync 能夠展示，改由 `labadmin`
+（網域管理員身份）直接在 DC01 上以 PowerShell 手動授予 `svc_backup` 複寫權。
+
+**影響範圍**:WriteDACL 偵測規則本身仍為已驗證（4662 事件確實由此操作產生，規則邏輯不
+受執行者身份影響）；但「攻陷帳號利用既有權限自我提權」這個攻擊能力**未完整驗證**，Stage
+9 到 Stage 10 之間的因果鏈存在一個以人工手動補齊的斷點，非攻擊者自主完成。
