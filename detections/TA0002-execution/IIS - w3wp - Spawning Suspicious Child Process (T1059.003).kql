@@ -1,3 +1,14 @@
+//======================================
+//Rule : IIS - w3wp - Spawning Suspicious Child Process
+//MITRE : T1059.003 (Windows Command Shell)
+//Data Source : SecurityEvent , EventID : 4688
+//Prerequisite : 啟用 "Audit Porcess Creation (Success)" + GPO "Include command line in process creation events"
+//Type : web服務程序衍生互動式 shell / LOLBin，屬異常父子程序關係
+//Severity : HIGH - IIS 工作程序不會 spawn shell ，命中多為webshell 落地執行
+//Known FP : 合法部署工具
+//Tuning : 依環境 allowlist已知部署 / 監控指令的 CommandLine
+//======================================
+
 SecurityEvent
 | where EventID == 4688
 | where ParentProcessName has_any (
