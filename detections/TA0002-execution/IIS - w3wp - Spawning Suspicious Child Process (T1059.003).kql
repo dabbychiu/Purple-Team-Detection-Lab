@@ -1,0 +1,27 @@
+SecurityEvent
+| where EventID == 4688
+| where ParentProcessName has_any (
+    "w3wp.exe",
+    "iisexpress.exe",
+    "msdeploy.exe"
+)
+| where NewProcessName has_any (
+    "cmd.exe",
+    "powershell.exe",
+    "pwsh.exe",
+    "mshta.exe",
+    "wscript.exe",
+    "cscript.exe",
+    "certutil.exe",
+    "bitsadmin.exe",
+    "regsvr32.exe",
+    "rundll32.exe"
+)
+| project
+    TimeGenerated,
+    Computer,
+    Account,
+    ParentProcessName,
+    NewProcessName,
+    CommandLine
+| sort by TimeGenerated desc
