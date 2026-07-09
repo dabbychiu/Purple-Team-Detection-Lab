@@ -12,6 +12,9 @@
 |WIN11-EDR|10.0.4.4|內網終端|
 |DC01|10.0.3.4|網域控制器（corp.lab）|
 
+<img width="1276" height="770" alt="image" src="https://github.com/user-attachments/assets/38857898-3693-4f50-b383-7c427d746b24" />
+
+
 日誌透過 AMA / DCR pipeline 集中送往 Microsoft Sentinel。
 
 ## 攻擊鏈總覽
