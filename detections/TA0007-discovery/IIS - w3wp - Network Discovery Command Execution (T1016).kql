@@ -2,7 +2,7 @@
 //Rule : IIS - w3wp - Network Discovery Command Execution
 //MITRE : T1016 (System Network Configuration Discovery)
 //Data Source : SecurityEvent , EventID : 4688
-//Prerequisite : 啟用 "Audit Porcess Creation (Success)" + GPO "Include command line in process creation events"
+//Prerequisite : 啟用 "Audit Process Creation (Success)" + GPO "Include command line in process creation events"
 //Type : web服務程序執行內網探索指令
 //Severity : MEDIUM - 單一探索指令未必惡意，但由w3wp發起則風險提高
 //Known FP : 合法部署腳本 / 合法使用者所實施檢查
@@ -11,8 +11,11 @@
 SecurityEvent
 | where EventID == 4688
 | where Computer has "DMZ"
-| where ParentProcessName has_any("w3wp.exe","cmd.exe","powershell.exe") 
-| where CommandLine has_any (
+| where ParentProcessName has_any (
+    "w3wp.exe",
+    "cmd.exe",
+    "powershell.exe"
+)| where CommandLine has_any (
     "ipconfig",
     "arp",
     "net view",
