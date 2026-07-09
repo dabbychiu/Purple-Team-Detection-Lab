@@ -1,3 +1,13 @@
+//============================================================================
+//Rule : AD - DomainObject - Directory Replication by Non-DC Account 
+//MITRE : T1003.006 (OS Credential Dumping: DCSync)
+//Data Source : SecurityEvent , EventID : 4662
+//Prerequisite : DC 上網域物件啟用 SACL 稽核 (Audit Directory Service Access - Success)
+//Type : 非 DC 帳號請求目錄複寫 (DS-Replication-Get-Changes) — DCSync 特徵
+//Severity : CRITICAL - 成功即等同取得整個網域雜湊 (含 krbtgt)
+//Known FP : Azure AD Connect / 合法複寫服務帳號 (應以 allowlist 排除)
+//Tuning : 白名單合法複寫帳號後，任何命中即應視為高優先事件
+//============================================================================
 SecurityEvent
 | where EventID == 4662
 | where TimeGenerated > ago(24h)
