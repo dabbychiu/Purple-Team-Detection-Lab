@@ -10,7 +10,7 @@ DMZ webshell → 憑證獲取 → LDAP 大規模枚舉 → kerberoast → WriteD
 
 ## 項目成果
 
-|內容                               |狀態   |說明|KQL 规则|
+|內容                               |狀態   |說明|KQL 規則|
 | ------------- |:-------------:|:-------------:|:-------------|
 |stage 1 : T1190 - Webshell 上傳    | ✓成功 | Webshell 上傳到 DMZ-web |✗|
 |stage 2 : T1505.003 - IIS 命令執行  | ✓成功 | w3wp.exe 運行系統命令|IIS - w3wp - Spawning Suspicious Child Process (T1059.003)|
