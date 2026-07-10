@@ -22,9 +22,8 @@
 |---|---|---|
 | Chain 1 | DMZ Webshell → LDAP枚舉 → Kerberoasting → WriteDACL → DCSync | 見 `detection-coverage.md` |
 
-## 偵測覆蓋率
+## 偵測規則 (Detection Rules)
 
-完整規則清單、狀態、對應階段請見 detection-coverage.md。
-> 所有規則皆為原型驗證邏輯，證明可偵測性；實際部署於正式環境前，需依環境基線調整並排除誤報。
+針對攻擊鏈每個階段開發並以實際流量驗證的 Microsoft Sentinel KQL 規則。
 
-
+📋 **完整規則清單與驗證狀態 → [detection-coverage.md](./detections/detection-coverage.md)**
