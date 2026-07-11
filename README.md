@@ -2,7 +2,7 @@
 
 ## Overview
 
-這是一個以「藍隊偵測規則設計」為核心目的的實驗室。透過在真實 Azure 環境中完整執行攻擊鏈,產生真實、可觀測的攻擊遙測資料,讓每一條 Microsoft Sentinel 偵測規則都經過實際攻擊流程驗證,而非憑空推測攻擊行為。攻擊情境的規劃採 AI 輔助,環境建置、攻擊執行與偵測驗證均為手動實作。
+在真實 Azure 環境中完整執行攻擊鏈,產生真實、可觀測的攻擊遙測資料,讓每一條 Microsoft Sentinel 偵測規則都經過實際攻擊流程驗證,而非憑空推測攻擊行為。攻擊情境的規劃採 AI 輔助,環境建置、攻擊執行與偵測驗證均為手動實作。
 
 ## 環境架構
 模擬小型企業網路，包含對外服務、內網主機、網域控制器三層，並以 NSG/ASG 做網段隔離：
@@ -26,4 +26,8 @@
 
 針對攻擊鏈每個階段開發並以實際流量驗證的 Microsoft Sentinel KQL 規則。
 
-📋 **完整規則清單與驗證狀態 → [detection-coverage.md](./detections/detection-coverage.md)**
+📋 **完整規則清單與驗證狀態**
+- 8條已驗證規則
+- 4個Tactic
+- 7個Technique
+- **覆蓋率  → [detection-coverage.md](./detections/detection-coverage.md)**
