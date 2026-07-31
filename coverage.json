@@ -1,0 +1,97 @@
+{
+  "T1059.003": {
+    "sentinel": [
+      {
+        "name": "IIS w3wp Spawning Suspicious Child Process",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-execution/IIS%20-%20w3wp%20-%20Spawning%20Suspicious%20Child%20Process%20%28T1059.003%29.kql"
+      }
+    ]
+  },
+  "T1016": {
+    "sentinel": [
+      {
+        "name": "IIS w3wp Network Discovery Command Execution",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/IIS%20-%20w3wp%20-%20Network%20Discovery%20Command%20Execution%20%28T1016%29.kql"
+      }
+    ]
+  },
+  "T1552.001": {
+    "sentinel": [
+      {
+        "name": "IIS w3wp Credential Scanning via findstr",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/IIS%20-%20w3wp%20-%20Credential%20Scanning%20via%20findstr%20%28T1552.001%29.kql"
+      }
+    ]
+  },
+  "T1087.002": {
+    "sentinel": [
+      {
+        "name": "AD LDAP Enumeration Tool Execution",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/AD%20-%20LDAP%20-%20Enumeration%20Tool%20Execution%20%28T1087.002%29.kql"
+      }
+    ]
+  },
+  "T1558.003": {
+    "sentinel": [
+      {
+        "name": "AD KDC RC4 Encrypted TGS Request Detected",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20RC4%20Encrypted%20TGS%20Request%20Detected%20%28T1558.003%29.kql"
+      },
+      {
+        "name": "AD KDC Kerberoasting TGS Requests",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20Kerberoasting%20TGS%20Requests%20%28T1558.003%29.kql"
+      }
+    ]
+  },
+  "T1222": {
+    "sentinel": [
+      {
+        "name": "AD DomainObject WRITE_DAC Permission Modification",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0004-privilege-escalation/AD%20-%20DomainObject%20-%20WRITE_DAC%20Permission%20Modification%20%28T1222%29.kql"
+      }
+    ]
+  },
+  "T1003.006": {
+    "sentinel": [
+      {
+        "name": "AD DomainObject Directory Replication by Non-DC Account (DCSync)",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20DomainObject%20-%20Directory%20Replication%20by%20Non-DC%20Account%20%28T1003.006%29.kql"
+      }
+    ]
+  },
+  "T1110": {
+    "qradar": [
+      {
+        "name": "Brute Force Login Detection",
+        "url": ""
+      }
+    ]
+  },
+  "T1591": {
+    "detectable": false
+  },
+  "T1596": {
+    "detectable": false
+  },
+  "T1595": {
+    "detectable": false
+  },
+  "T1583": {
+    "detectable": false
+  },
+  "T1587": {
+    "detectable": false
+  },
+  "T1584": {
+    "detectable": false
+  },
+  "T1650": {
+    "detectable": false
+  },
+  "T1200": {
+    "detectable": false
+  },
+  "T1052": {
+    "detectable": false
+  }
+}
