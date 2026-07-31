@@ -1,5 +1,11 @@
 # Detection Coverage
 
+完整的 MITRE ATT&CK 覆蓋率矩陣（互動版）：
+
+👉 https://dabbychiu.github.io/Purple-Team-Detection-Lab/
+
+黃色代表已有偵測覆蓋，點擊任一技術可展開對應的 Sentinel KQL 與 QRadar 規則連結。 
+
 ## 覆蓋率總覽
 
 | 項目 | 數量 |
