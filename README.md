@@ -29,7 +29,7 @@
 針對攻擊鏈每個階段開發並以實際流量驗證的 Microsoft Sentinel KQL 規則。
 
 📋 **完整規則清單與驗證狀態**
-- 8條已驗證規則
-- 4個Tactic
-- 7個Technique
-- **覆蓋率  → [detection-coverage.md](./detections/detection-coverage.md)**
+
+完整的 MITRE ATT&CK 覆蓋率矩陣（互動版）：<br>
+👉 **https://dabbychiu.github.io/Purple-Team-Detection-Lab/** <br>
+黃色代表已有偵測覆蓋，點擊任一技術可展開對應的 Sentinel KQL 與 QRadar 規則連結。
