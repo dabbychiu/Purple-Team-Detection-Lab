@@ -163,7 +163,7 @@ h1{font-size:20px;margin:2px 0 0;font-weight:650;letter-spacing:-.01em}
     </div>
     <span class="ver" id="ver">—</span>
   </div>
-  <p class="sub">黃色代表該技術已有偵測覆蓋。點開任一格可展開細節：<b style="color:#ff7aa8"><br>紫紅=QRadar 實戰規則</b>、<b style="color:#7fb0ff"><br>藍色=Sentinel KQL（lab）</b>。<br>資料由 <code style="font-family:var(--mono);font-size:12px">coverage.json</code> 驅動。</p>
+  <p class="sub">黃色代表該技術已有偵測覆蓋。點開任一格可展開細節：<b style="color:#ff7aa8"><br>紫紅=QRadar 實戰規則</b>、<b style="color:#7fb0ff">藍色=Sentinel KQL（lab）</b>。</p>
   <div class="stats" id="stats"></div>
   <div class="controls">
     <input type="search" id="q" placeholder="搜尋技術名稱或 ID（例：T1059、PowerShell）">
@@ -205,17 +205,54 @@ function covOf(id){ return COVERAGE[id] || null; }
 function isNA(id){ const c=COVERAGE[id]; return !!(c && c.detectable===false); }
 function hasCov(id){ const c=covOf(id); return !!(c && ((c.qradar&&c.qradar.length)||(c.sentinel&&c.sentinel.length))); }
 // a technique counts as "covered" if it or any sub is covered
-function techCovered(t){
-  if(hasCov(t.id)) return true;
-  return (t.subtechniques||[]).some(s=>hasCov(s.id));
+
+// tactic-aware coverage check for a technique id within a specific tactic column
+function covInTactic(id, short){
+  const c=covOf(id); if(!c) return {q:false,s:false};
+  const q=rulesForTactic(c.qradar,short).length>0;
+  const s=rulesForTactic(c.sentinel,short).length>0;
+  return {q,s};
 }
-function techSources(t){
+function hasCovInTactic(id, short){ const r=covInTactic(id,short); return r.q||r.s; }
+
+function techCovered(t, short){
+  if(short===undefined){
+    if(hasCov(t.id)) return true;
+    return (t.subtechniques||[]).some(s=>hasCov(s.id));
+  }
+  if(hasCovInTactic(t.id,short)) return true;
+  return (t.subtechniques||[]).some(s=>hasCovInTactic(s.id,short));
+}
+function techSources(t, short){
   let q=false,s=false;
-  const scan=id=>{const c=covOf(id); if(c){if(c.qradar&&c.qradar.length)q=true; if(c.sentinel&&c.sentinel.length)s=true;}};
+  const scan=id=>{
+    if(short===undefined){const c=covOf(id); if(c){if(c.qradar&&c.qradar.length)q=true; if(c.sentinel&&c.sentinel.length)s=true;}}
+    else {const r=covInTactic(id,short); if(r.q)q=true; if(r.s)s=true;}
+  };
   scan(t.id); (t.subtechniques||[]).forEach(x=>scan(x.id));
   return {q,s};
 }
 
+
+// normalize a tactic ref (shortname like "initial-access" OR id like "TA0001") -> shortname
+const TA_ID2SHORT={};
+Object.entries(ATTACK.tactics).forEach(([short,info])=>{TA_ID2SHORT[info.id.toUpperCase()]=short;});
+function normTactic(x){
+  if(!x) return null;
+  const s=String(x).trim();
+  if(/^TA\d+$/i.test(s)) return TA_ID2SHORT[s.toUpperCase()]||null;
+  return s.toLowerCase();
+}
+// does a rule (with optional .tactic) apply to this tactic column?
+function ruleInTactic(rule, short){
+  const rt=normTactic(rule.tactic);
+  return rt===null || rt===short;   // no tactic = applies everywhere (back-compat)
+}
+// filter a coverage entry's rules down to those relevant to a given tactic column
+function rulesForTactic(list, short){
+  if(!list) return [];
+  return list.filter(r=>ruleInTactic(r,short));
+}
 const TAC_COLORS={
 'reconnaissance':'#8b6db8','resource-development':'#6d7fb8','initial-access':'#5b93c7',
 'execution':'#3fa3a3','persistence':'#3fa86b','privilege-escalation':'#6fae3f',
@@ -252,11 +289,11 @@ function matchQuery(t){
   if(t.id.toLowerCase().includes(q)||t.name.toLowerCase().includes(q)) return true;
   return (t.subtechniques||[]).some(s=>s.id.toLowerCase().includes(q)||s.name.toLowerCase().includes(q));
 }
-function passFilter(t){
+function passFilter(t, short){
   const na=isNA(t.id);
   if(na && !filters.showna) return false;          // 預設隱藏不可偵測
-  const src=techSources(t);
-  if(filters.covered && !techCovered(t)) return false;
+  const src=techSources(t, short);
+  if(filters.covered && !techCovered(t, short)) return false;
   if(filters.qradar && !src.q) return false;
   if(filters.sentinel && !src.s) return false;
   return matchQuery(t);
@@ -267,19 +304,19 @@ function buildMatrix(){
   ATTACK.tactic_order.forEach(short=>{
     const tac=ATTACK.tactics[short];
     const techs=ATTACK.techniques.filter(t=>t.tactics.includes(short)).sort((a,b)=>a.id.localeCompare(b.id));
-    const visible=techs.filter(passFilter);
+    const visible=techs.filter(t=>passFilter(t, short));
     const col=document.createElement('div'); col.className='col'+(visible.length?'':' hidden');
     const tcolor=TAC_COLORS[short]||'#39435a';
     col.style.setProperty('--tacc',tcolor);
-    const covCount=techs.filter(t=>!isNA(t.id)&&techCovered(t)).length;
+    const covCount=techs.filter(t=>!isNA(t.id)&&techCovered(t, short)).length;
     const denom=techs.filter(t=>!isNA(t.id)).length;
     col.innerHTML=`<div class="chead" style="--tacc:${tcolor}"><div class="cid">${tac.id}</div>
       <div class="cname">${tac.name}</div>
       <div class="ccount">${covCount}/${denom} covered</div></div>`;
     visible.forEach(t=>{
       const na=isNA(t.id);
-      const src=techSources(t);
-      const cov=!na&&techCovered(t);
+      const src=techSources(t, short);
+      const cov=!na&&techCovered(t, short);
       const cell=document.createElement('div');
       cell.className='cell'+(na?' na':(cov?' covered':' dim'));
       const subCount=(t.subtechniques||[]).length;
@@ -321,14 +358,17 @@ function openDrawer(t,short){
     html+=`<div class="section na"><h3><span class="sw"></span>不可偵測 (N/A)</h3>
       <div class="na-note">此技術本質上無法由 SIEM 偵測（例：攻擊前偵察、實體接觸、離線行為），已排除於覆蓋率分母之外。若日後接上對應資料源，於 coverage.json 移除 <code style="font-family:var(--mono)">"detectable": false</code> 即可。</div></div>`;
   }
-  const hasDirectQ=c.qradar&&c.qradar.length, hasDirectS=c.sentinel&&c.sentinel.length;
-  if(hasDirectQ) html+=`<div class="section q"><h3><span class="sw"></span>QRadar 規則（實戰）</h3>${detailBlock(c.qradar,'q')}</div>`;
-  if(hasDirectS) html+=`<div class="section s"><h3><span class="sw"></span>Sentinel KQL（Lab）</h3>${detailBlock(c.sentinel,'s')}</div>`;
+  // scope rules to the tactic column this drawer was opened from
+  const dQ=rulesForTactic(c.qradar, short), dS=rulesForTactic(c.sentinel, short);
+  if(dQ.length) html+=`<div class="section q"><h3><span class="sw"></span>QRadar 規則（實戰）</h3>${detailBlock(dQ,'q')}</div>`;
+  if(dS.length) html+=`<div class="section s"><h3><span class="sw"></span>Sentinel KQL（Lab）</h3>${detailBlock(dS,'s')}</div>`;
   if(t.subtechniques&&t.subtechniques.length){
     html+=`<div class="section"><h3 style="color:var(--dim)"><span class="sw" style="background:var(--faint)"></span>子技術 ${t.subtechniques.length}</h3><div class="subwrap">`;
     t.subtechniques.forEach(s=>{
-      const sc=covOf(s.id)||{}; const scov=hasCov(s.id);
-      const hasQ=sc.qradar&&sc.qradar.length, hasS=sc.sentinel&&sc.sentinel.length;
+      const sc=covOf(s.id)||{};
+      const qList=rulesForTactic(sc.qradar, short), sList=rulesForTactic(sc.sentinel, short);
+      const hasQ=qList.length>0, hasS=sList.length>0;
+      const scov=hasQ||hasS;
       const covClass = hasQ&&hasS ? 'cov-qs' : (hasQ ? 'cov-q' : (hasS ? 'cov-s' : ''));
       html+=`<div class="subrow ${scov?'covered':''} ${covClass}">
         <span class="sid">${s.id}</span>
@@ -336,11 +376,8 @@ function openDrawer(t,short){
         ${hasQ?'<span class="sb q">Q</span>':''}
         ${hasS?'<span class="sb s">S</span>':''}
       </div>`;
-      // if sub has detail, show inline
-      if((sc.qradar&&sc.qradar.length)||(sc.sentinel&&sc.sentinel.length)){
-        if(sc.qradar&&sc.qradar.length) html+='<div style="margin:0 0 6px 8px">'+detailBlock(sc.qradar,'q')+'</div>';
-        if(sc.sentinel&&sc.sentinel.length) html+='<div style="margin:0 0 6px 8px">'+detailBlock(sc.sentinel,'s')+'</div>';
-      }
+      if(hasQ) html+='<div style="margin:0 0 6px 8px">'+detailBlock(qList,'q')+'</div>';
+      if(hasS) html+='<div style="margin:0 0 6px 8px">'+detailBlock(sList,'s')+'</div>';
     });
     html+='</div></div>';
   }
