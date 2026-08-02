@@ -1,6 +1,6 @@
 //============================================================================
 //Rule : Endpoint - Defender - Malicious File Download Detected
-//MITRE : T1204.001 (User Execution: Malicious File)
+//MITRE : T1204
 //Data Source : DeviceEvents (MDE)
 //Prerequisite : MDE onboarded, DeviceEvents connector enabled in Sentinel
 //Type : 偵測 Defender 攔截到的惡意檔案下載或執行
