@@ -1,4 +1,4 @@
-# Chain 2 – IR Playbook: ClickFix 釣魚 → Ransomware via ADCS ESC1
+# Chain 2 – IR Playbook: Phishing → Ransomware
 完整攻擊鏈的因應指南，從初始釣魚到勒索破壞。
 
 ---
