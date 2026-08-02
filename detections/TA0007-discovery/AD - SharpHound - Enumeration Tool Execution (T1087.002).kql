@@ -1,0 +1,29 @@
+//============================================================================
+//Rule : AD - SharpHound - Enumeration Tool Execution
+//MITRE : T1087.002 (Account Discovery: Domain Account)
+//Data Source : SecurityEvent , EventID : 4688
+//Prerequisite : 啟用 "Audit Process Creation (Success)" + GPO "Include command line in process creation events"
+//Type : 以已知列舉工具名稱偵測 AD 枚舉行為
+//Severity : MEDIUM - 工具名稱明確，但可能為授權紅隊 / 滲透測試合法使用
+//Known FP : 授權滲透測試 / IT 稽核腳本
+//Tuning : allowlist 已授權測試主機；關聯後續大量 LDAP 查詢確認範圍
+//Note : 本 lab 中透過 Sliver C2 上傳並執行 SharpHound v2.13.0，
+//       蒐集 347 個 AD 物件，偵測訊號已驗證
+//============================================================================
+SecurityEvent
+| where EventID == 4688
+| where CommandLine has_any (
+    "SharpHound",
+    "GetADUsers",
+    "GetADComputers",
+    "GetUserSPNs",
+    "ldapsearch",
+    "BloodHound"
+)
+| project
+    TimeGenerated,
+    Computer,
+    SubjectUserName,
+    CommandLine,
+    ParentProcessName
+| sort by TimeGenerated desc
