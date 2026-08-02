@@ -1,0 +1,28 @@
+//============================================================================
+//Rule : Endpoint - Defender - Malicious File Download Detected
+//MITRE : T1204.001 (User Execution: Malicious File)
+//Data Source : DeviceEvents (MDE)
+//Prerequisite : MDE onboarded, DeviceEvents connector enabled in Sentinel
+//Type : 偵測 Defender 攔截到的惡意檔案下載或執行
+//Severity : HIGH - 使用者被 ClickFix 誘導下載並執行惡意 payload
+//Known FP : 合法安全性測試工具被誤判
+//Tuning : 關聯後續 DeviceNetworkEvents 確認 C2 是否上線
+//============================================================================
+DeviceEvents
+| where ActionType in (
+    "AntivirusDetection",
+    "AntivirusScanCompleted"
+)
+| where AdditionalFields has_any (
+    "demon",
+    "sliver",
+    "trojan",
+    "malware"
+)
+| project
+    TimeGenerated,
+    DeviceName,
+    InitiatingProcessAccountName,
+    ActionType,
+    AdditionalFields
+| sort by TimeGenerated desc
