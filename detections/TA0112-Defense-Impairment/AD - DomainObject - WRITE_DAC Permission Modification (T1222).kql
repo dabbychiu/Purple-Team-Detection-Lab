@@ -1,16 +1,15 @@
 //============================================================================
-//Rule : AD - DomainObject - Directory Replication by Non-DC Account
-//MITRE : T1003.006 (OS Credential Dumping: DCSync)
+//Rule : AD - DomainObject - WRITE_DAC Permission Modification
+//MITRE : T1222 (File and Directory Permissions Modification)
 //Data Source : SecurityEvent , EventID : 4662
-//Prerequisite : 啟用 "Audit Directory Service Access (Success)"
-//Type : 偵測非 DC 帳號使用 Replicating Directory Changes 權限（DCSync 特徵）
-//Severity : CRITICAL - DCSync 可取得全域 NTLM hash
-//Known FP : 合法 AD 複寫（DC 機器帳號）
-//Tuning : 排除 DC 機器帳號（SubjectUserName endswith "$"）
+//Prerequisite : 啟用 "Audit Directory Service Access (Success)"，並於目標物件設定 SACL
+//Type : 偵測非機器帳號對 AD 物件寫入 DACL (WRITE_DAC, AccessMask 0x40000) — 提權至 DCSync 的前置步驟
+//Severity : HIGH - 修改網域物件 ACL，常為 DCSync / 域管提權前置動作
+//Known FP : 合法權限委派 / AD 管理操作 / Azure AD Connect (應以 allowlist 排除)
+//Tuning : 建立已授權帳號白名單；ObjectName 為網域根物件時視為 CRITICAL
 //============================================================================
 SecurityEvent 
-| where EventID == 4662 
-| where TimeGenerated > ago(2h) 
+| where EventID == 4662 
 | where ObjectServer == "DS" 
 | where AccessMask == "0x40000" 
 | where SubjectUserName !endswith "$" 
