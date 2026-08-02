@@ -1,61 +1,178 @@
 {
+  "T1204": {
+    "sentinel": [
+      {
+        "name": "Endpoint - Defender - Malicious File Download Detected",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0001-Initial-Access/Endpoint%20-%20Defender%20-%20Malicious%20File%20Download%20Detected%20%28T1204%29.kql",
+        "tactic": "initial-access"
+      }
+    ]
+  },
+  "T1059.001": {
+    "sentinel": [
+      {
+        "name": "Endpoint - Defender - AMSI Malicious Script Blocked",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-execution/Endpoint%20-%20Defender%20-%20AMSI%20Malicious%20Script%20Blocked%20%28T1059.001%29.kql",
+        "tactic": "execution"
+      },
+      {
+        "name": "Endpoint - PowerShell - Suspicious Command Execution via Run Dialog",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-execution/Endpoint%20-%20PowerShell%20-%20Suspicious%20Command%20Execution%20via%20Run%20Dialog%20%28T1059.001%29.kql",
+        "tactic": "execution"
+      }
+    ]
+  },
+  "T1218.005": {
+    "sentinel": [
+      {
+        "name": "Endpoint - mshta - Remote HTA Network Connection",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-execution/Endpoint%20-%20mshta%20-%20Remote%20HTA%20Network%20Connection%20%28T1218.005%29.kql",
+        "tactic": "execution"
+      }
+    ]
+  },
   "T1059.003": {
     "sentinel": [
       {
-        "name": "IIS w3wp Spawning Suspicious Child Process",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-execution/IIS%20-%20w3wp%20-%20Spawning%20Suspicious%20Child%20Process%20%28T1059.003%29.kql"
+        "name": "IIS - w3wp - Spawning Suspicious Child Process",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-execution/IIS%20-%20w3wp%20-%20Spawning%20Suspicious%20Child%20Process%20%28T1059.003%29.kql",
+        "tactic": "execution"
       }
     ]
   },
-  "T1016": {
+  "T1547.001": {
     "sentinel": [
       {
-        "name": "IIS w3wp Network Discovery Command Execution",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/IIS%20-%20w3wp%20-%20Network%20Discovery%20Command%20Execution%20%28T1016%29.kql"
+        "name": "Endpoint - Registry - Run Key Persistence",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0003-Persistence/Endpoint%20-%20Registry%20-%20Run%20Key%20Persistence%20%28T1547.001%29.kql",
+        "tactic": "persistence"
       }
     ]
   },
-  "T1552.001": {
+  "T1649": {
     "sentinel": [
       {
-        "name": "IIS w3wp Credential Scanning via findstr",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/IIS%20-%20w3wp%20-%20Credential%20Scanning%20via%20findstr%20%28T1552.001%29.kql"
+        "name": "AD - ADCS - ESC1 Certificate Request with Enrollee Supplied Subject",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0004-Privilege-Escalation/AD%20-%20ADCS%20-%20ESC1%20Certificate%20Request%20with%20Enrollee%20Supplied%20Subject.kql",
+        "tactic": "privilege-escalation"
       }
     ]
   },
-  "T1087.002": {
+  "T1218": {
     "sentinel": [
       {
-        "name": "AD LDAP Enumeration Tool Execution",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/AD%20-%20LDAP%20-%20Enumeration%20Tool%20Execution%20%28T1087.002%29.kql"
-      }
-    ]
-  },
-  "T1558.003": {
-    "sentinel": [
-      {
-        "name": "AD KDC RC4 Encrypted TGS Request Detected",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20RC4%20Encrypted%20TGS%20Request%20Detected%20%28T1558.003%29.kql"
-      },
-      {
-        "name": "AD KDC Kerberoasting TGS Requests",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20Kerberoasting%20TGS%20Requests%20%28T1558.003%29.kql"
-      }
-    ]
-  },
-  "T1222": {
-    "sentinel": [
-      {
-        "name": "AD DomainObject WRITE_DAC Permission Modification",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0004-privilege-escalation/AD%20-%20DomainObject%20-%20WRITE_DAC%20Permission%20Modification%20%28T1222%29.kql"
+        "name": "Endpoint - LOLBin - Suspicious Process with Network Parameters",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0005-Stealth/Endpoint%20-%20LOLBin%20-%20Suspicious%20Process%20with%20Network%20Parameters%20%28T1218%29.kql",
+        "tactic": "stealth"
       }
     ]
   },
   "T1003.006": {
     "sentinel": [
       {
-        "name": "AD DomainObject Directory Replication by Non-DC Account (DCSync)",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20DomainObject%20-%20Directory%20Replication%20by%20Non-DC%20Account%20%28T1003.006%29.kql"
+        "name": "AD - DomainObject - Directory Replication by Non-DC Account",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20DomainObject%20-%20Directory%20Replication%20by%20Non-DC%20Account%20%28T1003.006%29.kql",
+        "tactic": "credential-access"
+      }
+    ]
+  },
+  "T1558.003": {
+    "sentinel": [
+      {
+        "name": "AD - KDC - Kerberoasting TGS Requests",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20Kerberoasting%20TGS%20Requests%20%28T1558.003%29.kql",
+        "tactic": "credential-access"
+      },
+      {
+        "name": "AD - KDC - RC4 Encrypted TGS Request Detected",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20RC4%20Encrypted%20TGS%20Request%20Detected%20%28T1558.003%29.kql",
+        "tactic": "credential-access"
+      }
+    ]
+  },
+  "T1552.001": {
+    "sentinel": [
+      {
+        "name": "IIS - w3wp - Credential Scanning via findstr",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/IIS%20-%20w3wp%20-%20Credential%20Scanning%20via%20findstr%20%28T1552.001%29.kql",
+        "tactic": "credential-access"
+      }
+    ]
+  },
+  "T1087.002": {
+    "sentinel": [
+      {
+        "name": "AD - LDAP - Enumeration Tool Execution",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/AD%20-%20LDAP%20-%20Enumeration%20Tool%20Execution%20%28T1087.002%29.kql",
+        "tactic": "discovery"
+      },
+      {
+        "name": "AD - SharpHound - Enumeration Tool Execution",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/AD%20-%20SharpHound%20-%20Enumeration%20Tool%20Execution%20%28T1087.002%29.kql",
+        "tactic": "discovery"
+      }
+    ]
+  },
+  "T1016": {
+    "sentinel": [
+      {
+        "name": "IIS - w3wp - Network Discovery Command Execution",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/IIS%20-%20w3wp%20-%20Network%20Discovery%20Command%20Execution%20%28T1016%29.kql",
+        "tactic": "discovery"
+      }
+    ]
+  },
+  "T1567.002": {
+    "sentinel": [
+      {
+        "name": "Endpoint - Network - Large Outbound Transfer to Non-Corporate Endpoint",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0010-Exfiltration/Endpoint%20-%20Network%20-%20Large%20Outbound%20Transfer%20to%20Non-Corporate%20Endpoint%20%28T1567.002%29.kql",
+        "tactic": "exfiltration"
+      }
+    ]
+  },
+  "T1071.001": {
+    "sentinel": [
+      {
+        "name": "Endpoint - Network - C2 Beacon from User Directory",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0011-Command-and-Control/Endpoint%20-%20Network%20-%20C2%20Beacon%20from%20User%20Directory%20%28T1071.001%29.kql",
+        "tactic": "command-and-control"
+      }
+    ]
+  },
+  "T1489": {
+    "sentinel": [
+      {
+        "name": "Endpoint - Service - Backup and Database Service Stopped",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0040-Impact/Endpoint%20-%20Service%20-%20Backup%20and%20Database%20Service%20Stopped%20%28T1489%29.kql",
+        "tactic": "impact"
+      }
+    ]
+  },
+  "T1490": {
+    "sentinel": [
+      {
+        "name": "Endpoint - VSS - Shadow Copy Deletion",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0040-Impact/Endpoint%20-%20VSS%20-%20Shadow%20Copy%20Deletion%20%28T1490%29.kql",
+        "tactic": "impact"
+      }
+    ]
+  },
+  "T1222": {
+    "sentinel": [
+      {
+        "name": "AD - DomainObject - WRITE_DAC Permission Modification",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0112-Defense-Impairment/AD%20-%20DomainObject%20-%20WRITE_DAC%20Permission%20Modification%20%28T1222%29.kql",
+        "tactic": "defense-impairment"
+      }
+    ]
+  },
+  "T1110.001": {
+    "qradar": [
+      {
+        "name": "REMOVED",
+        "url": "",
+        "desc": "Apply Brute Force Success on events which are detected by the local system and when the event QID is one of the following (4624) Success Audit: An account was successfully logged on and when BB:CategoryDefinition : Authentication Failures match at least 5 times with the same Username in 10 minutes."
       }
     ]
   },
@@ -85,14 +202,5 @@
   },
   "T1052": {
     "detectable": false
-  },
-  "T1110.001": {
-    "qradar": [
-      {
-        "name": "Brute Force Success - 5 Failed then Success (Same User)",
-        "url": "",
-        "desc": "Apply Brute Force Success on events which are detected by the local system and when the event QID is one of the following (4624) Success Audit: An account was successfully logged on and when BB:CategoryDefinition : Authentication Failures match at least 5 times with the same Username in 10 minutes."
-      }
-    ]
   }
 }
