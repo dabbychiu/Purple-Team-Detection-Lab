@@ -3,7 +3,7 @@
     "sentinel": [
       {
         "name": "Endpoint - Defender - Malicious File Download Detected",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0001-Initial-Access/Endpoint%20-%20Defender%20-%20Malicious%20File%20Download%20Detected%20%28T1204.001%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-execution/Endpoint%20-%20Defender%20-%20Malicious%20File%20Download%20Detected%20%28T1204.001%29.kql",
         "tactic": "execution"
       }
     ]
@@ -26,7 +26,7 @@
     "sentinel": [
       {
         "name": "Endpoint - mshta - Remote HTA Network Connection",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-execution/Endpoint%20-%20mshta%20-%20Remote%20HTA%20Network%20Connection%20%28T1218.005%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0005-Stealth/Endpoint%20-%20mshta%20-%20Remote%20HTA%20Network%20Connection%20%28T1218.005%29.kql",
         "tactic": "stealth"
       }
     ]
@@ -53,7 +53,7 @@
     "sentinel": [
       {
         "name": "AD - ADCS - ESC1 Certificate Request with Enrollee Supplied Subject",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0004-Privilege-Escalation/AD%20-%20ADCS%20-%20ESC1%20Certificate%20Request%20with%20Enrollee%20Supplied%20Subject.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20ADCS%20-%20ESC1%20Certificate%20Request%20with%20Enrollee%20Supplied%20Subject.kql",
         "tactic": "credential-access"
       }
     ]
