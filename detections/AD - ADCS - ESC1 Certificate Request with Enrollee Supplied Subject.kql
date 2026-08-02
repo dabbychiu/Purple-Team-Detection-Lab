@@ -1,0 +1,35 @@
+//============================================================================
+//Rule : AD - ADCS - ESC1 Certificate Request with Enrollee Supplied Subject
+//MITRE : T1649 (Steal or Forge Authentication Certificates)
+//Data Source : SecurityEvent , EventID : 4886, 4887
+//Prerequisite : certutil -setreg CA\AuditFilter 127
+//               net stop certsvc && net start certsvc
+//               auditpol /set /subcategory:"Certification Services" /success:enable /failure:enable
+//Type : 偵測憑證申請者與 SAN Principal Name 不符（ESC1 核心偵測）
+//Severity : CRITICAL - 低權限帳號冒充高權限帳號申請憑證，可用於 PKINIT 取得 DA TGT
+//Known FP : 合法憑證申請（IT 管理員代發憑證）
+//Tuning : 關聯後續 4768（PKINIT TGT 申請）確認提權是否成功
+//Note : 本 lab 中 CORP\alice 申請 Principal Name=admin@corp.lab 的憑證，
+//       Requester 與 Principal Name 不符即為 ESC1 攻擊特徵，偵測訊號已驗證
+//============================================================================
+SecurityEvent
+| where EventID in (4886, 4887)
+| where Computer has "DC01"
+| extend
+    Requester = extract(@"<Data Name=""Requester"">([^<]+)<", 1, EventData),
+    PrincipalName = extract(@"Principal Name=([^\s&]+)", 1, EventData),
+    Template = extract(@"<Data Name=""CertificateTemplate"">([^<]+)<", 1, EventData)
+| where isnotempty(PrincipalName)
+| extend RequesterUPN = tolower(split(Requester, "\\")[1])
+| extend PrincipalUPN = tolower(split(PrincipalName, "@")[0])
+| where RequesterUPN != PrincipalUPN
+| project
+    TimeGenerated,
+    Computer,
+    EventID,
+    Requester,
+    PrincipalName,
+    Template,
+    RequesterUPN,
+    PrincipalUPN
+| sort by TimeGenerated desc
