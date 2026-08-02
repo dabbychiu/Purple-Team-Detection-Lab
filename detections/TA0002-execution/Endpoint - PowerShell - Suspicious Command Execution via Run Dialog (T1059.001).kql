@@ -1,0 +1,29 @@
+//============================================================================
+//Rule : Endpoint - PowerShell - Suspicious Command Execution via Run Dialog
+//MITRE : T1059.001 (Command and Scripting Interpreter: PowerShell)
+//Data Source : DeviceProcessEvents (MDE)
+//Prerequisite : MDE onboarded, DeviceProcessEvents connector enabled in Sentinel
+//Type : 偵測從 Run 對話框拉起的可疑 PowerShell（ClickFix 核心行為）
+//Severity : HIGH - 使用者被社交工程誘導在 Run 對話框執行惡意 PowerShell
+//Known FP : IT 人員手動執行 PowerShell 維運腳本
+//Tuning : 關聯父程序為 explorer.exe 且命令列含下載行為的組合
+//============================================================================
+DeviceProcessEvents
+| where FileName =~ "powershell.exe"
+| where InitiatingProcessFileName =~ "explorer.exe"
+| where ProcessCommandLine has_any (
+    "IEX",
+    "DownloadString",
+    "DownloadData",
+    "Invoke-WebRequest",
+    "hidden",
+    "bypass"
+)
+| project
+    TimeGenerated,
+    DeviceName,
+    InitiatingProcessAccountName,
+    FileName,
+    ProcessCommandLine,
+    InitiatingProcessFileName
+| sort by TimeGenerated desc
