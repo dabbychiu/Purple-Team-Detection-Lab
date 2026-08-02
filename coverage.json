@@ -202,5 +202,14 @@
   },
   "T1052": {
     "detectable": false
+  },
+  "T1021.002": {
+    "sentinel": [
+      {
+        "name": "AD - SMB - Lateral Movement to File Server via Admin Share",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0008-Lateral-Movement/AD%20-%20SMB%20-%20Lateral%20Movement%20to%20File%20Server%20via%20Admin%20Share.kql",
+        "tactic": "lateral-movement"
+      }
+    ]
   }
 }
