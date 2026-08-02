@@ -65,7 +65,7 @@ flowchart TD
 
 **T1486 - 副檔名修改（勒索加密）**
 
-缺口：SRV-FILE 的 MDE 於本攻擊執行後才完成 onboard，FileRenamed 事件無歷史資料可查；重新執行改名後 DeviceFileEvents 仍未記錄到 FileRenamed，推測為 MDE 對 SRV-FILE 本機 PowerShell Rename-Item 操作的覆蓋限制。
+缺口：SRV-FILE 的 MDE 於本攻擊執行後才完成 onboard，FileRenamed 事件無歷史資料可查；重新執行改名後 DeviceFileEvents 仍未記錄到 FileRenamed，推測為 MDE 對 SRV-FILE 本機 PowerShell Rename-Item 操作的覆蓋限制。若補齊環境，偵測邏輯如下：以 DeviceFileEvents 監控單一程序在短時間內（如 5 分鐘）大量 FileRenamed 事件，且改名後副檔名收斂為單一非常見副檔名（勒索加密特徵）；可關聯同主機 VSS 刪除事件（T1490）。
 
 ## Stage 1 補充說明：MDE 阻擋與繞過
 
