@@ -2,7 +2,7 @@
 
 ## 項目概述
 
-模擬 2025–2026 年勒索軟體攻擊團夥最常見的入侵路徑，從 ClickFix 社交工程釣魚取得初始存取，建立 Sliver C2 通道，濫用 AD CS ESC1 憑證服務設定錯誤取得網域控制權，橫向移動至檔案伺服器竊取資料，最終執行勒索式破壞。
+模擬 2025–2026 年勒索軟體攻擊最常見的入侵路徑，從 ClickFix 社交工程釣魚取得初始存取，建立 Sliver C2 通道，濫用 AD CS ESC1 憑證服務設定錯誤取得網域控制權，橫向移動至檔案伺服器竊取資料，最終執行勒索式破壞。
 
 ## 攻擊流程
 
@@ -46,14 +46,14 @@ flowchart TD
 | Stage 2 | T1071.001 - Sliver C2 上線 | ✅ 驗證 | demon.exe 從 C:\Users\Public\ 對外建立 HTTPS beacon 回連 172.188.32.246:443 | Endpoint - Network - C2 Beacon from User Directory (T1071.001) |
 | Stage 3 | T1547.001 - Registry Run Key 持久化 | ✅ 驗證 | 透過 C2 shell 寫入 HKCU Run Key，alice 登入自動執行 demon.exe | Endpoint - Registry - Run Key Persistence (T1547.001) |
 | Stage 3 | T1218.005 - mshta LOLBin | ✅ 驗證 | 透過 C2 執行 mshta.exe 載入遠端 HTA，產生 LOLBin 對外連線訊號 | Endpoint - mshta - Remote HTA Network Connection (T1218.005) |
-| Stage 3 | T1218 - LOLBin 綜合 | ✅ 驗證 | 偵測多種 LOLBin 帶網路參數執行，偵測訊號已驗證 | Endpoint - LOLBin - Suspicious Process with Network Parameters (T1218) |
-| Stage 4 | T1087.002 - SharpHound AD 枚舉 | ✅ 驗證 | SharpHound v2.13.0 執行全域 AD 枚舉（347 個物件），偵測訊號已驗證 | AD - SharpHound - Enumeration Tool Execution (T1087.002) |
-| Stage 5 | T1649 - ADCS ESC1 憑證申請 | ✅ 驗證 | alice 申請 SAN=admin@corp.lab 憑證（Requester ≠ Principal Name），4887 事件已驗證 | AD - ADCS - ESC1 Certificate Request with Enrollee Supplied Subject (T1649) |
-| Stage 6 | T1003.006 - DCSync | ✅ 驗證 | 以 admin NT hash 執行 DCSync，取得全域憑證，4662 事件已驗證 | AD - DomainObject - Directory Replication by Non-DC Account (T1003.006) |
+| Stage 3 | T1218 - LOLBin 綜合 | ✅ 驗證 | 偵測多種 LOLBin 帶網路參數執行 | Endpoint - LOLBin - Suspicious Process with Network Parameters (T1218) |
+| Stage 4 | T1087.002 - SharpHound AD 枚舉 | ✅ 驗證 | SharpHound 執行全域 AD 枚舉 | AD - SharpHound - Enumeration Tool Execution (T1087.002) |
+| Stage 5 | T1649 - ADCS ESC1 憑證申請 | ✅ 驗證 | alice 申請 SAN=admin@corp.lab 憑證，4887 事件 | AD - ADCS - ESC1 Certificate Request with Enrollee Supplied Subject (T1649) |
+| Stage 6 | T1003.006 - DCSync | ✅ 驗證 | 以 admin NT hash 執行 DCSync，取得全域憑證，4662 事件 | AD - DomainObject - Directory Replication by Non-DC Account (T1003.006) |
 | Stage 7 | T1021.002 - 橫向移動 SRV-FILE | ✅ 驗證 | smbclient 使用 admin Kerberos TGT 存取 SRV-FILE C$，成功列舉 FinanceShare | AD - SMB - Lateral Movement to File Server via Admin Share (T1021.002) |
-| Stage 8 | T1567.002 - rclone 外洩 | ✅ 驗證 | rclone 嘗試連線至 MinIO（含 ConnectionFailed 訊號），3 個檔案外洩至 stolen-data | Endpoint - Network - Large Outbound Transfer to Non-Corporate Endpoint (T1567.002) |
-| Stage 9 | T1490 - VSS 刪除 | ✅ 驗證 | vssadmin delete shadows 在 SRV-FILE 執行，DeviceProcessEvents 偵測訊號已驗證 | Endpoint - VSS - Shadow Copy Deletion (T1490) |
-| Stage 9 | T1489 - 服務停用 | ✅ 驗證 | net stop VSS 在 SRV-FILE 執行，DeviceProcessEvents 偵測訊號已驗證 | Endpoint - Service - Backup and Database Service Stopped (T1489) |
+| Stage 8 | T1567.002 - rclone 外洩 | ✅ 驗證 | rclone 嘗試連線至 MinIO，3 個檔案外洩至 stolen-data | Endpoint - Network - Large Outbound Transfer to Non-Corporate Endpoint (T1567.002) |
+| Stage 9 | T1490 - VSS 刪除 | ✅ 驗證 | vssadmin delete shadows 在 SRV-FILE 執行 | Endpoint - VSS - Shadow Copy Deletion (T1490) |
+| Stage 9 | T1489 - 服務停用 | ✅ 驗證 | net stop VSS 在 SRV-FILE 執行| Endpoint - Service - Backup and Database Service Stopped (T1489) |
 
 ## 未覆蓋階段
 
@@ -65,7 +65,7 @@ flowchart TD
 
 **T1486 - 副檔名修改（勒索加密）**
 
-缺口：SRV-FILE 的 MDE 於本攻擊執行後才完成 onboard，FileRenamed 事件無歷史資料可查；重新執行改名後 DeviceFileEvents 仍未記錄到 FileRenamed，推測為 MDE 對 SRV-FILE 本機 PowerShell Rename-Item 操作的覆蓋限制。規則邏輯正確，在完整 MDE 覆蓋的環境下有效。
+缺口：SRV-FILE 的 MDE 於本攻擊執行後才完成 onboard，FileRenamed 事件無歷史資料可查；重新執行改名後 DeviceFileEvents 仍未記錄到 FileRenamed，推測為 MDE 對 SRV-FILE 本機 PowerShell Rename-Item 操作的覆蓋限制。
 
 ## Stage 1 補充說明：MDE 阻擋與繞過
 
