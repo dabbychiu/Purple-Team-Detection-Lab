@@ -1,0 +1,25 @@
+//============================================================================
+//Rule : Endpoint - VSS - Shadow Copy Deletion
+//MITRE : T1490 (Inhibit System Recovery)
+//Data Source : DeviceProcessEvents (MDE)
+//Prerequisite : MDE onboarded, DeviceProcessEvents connector enabled in Sentinel
+//Type : 偵測 vssadmin 刪除 VSS Shadow Copy（勒索軟體前置動作）
+//Severity : CRITICAL - 刪除備份還原點，受害者無法自行復原
+//Known FP : 合法備份軟體的 VSS 管理操作
+//Tuning : 關聯前後的勒索行為（改副檔名、停服務）確認攻擊意圖
+//Note : 本 lab 中在 SRV-FILE 上執行 vssadmin delete shadows，偵測訊號已驗證
+//============================================================================
+DeviceProcessEvents
+| where FileName =~ "vssadmin.exe"
+| where ProcessCommandLine has_any (
+    "delete shadows",
+    "delete shadow"
+)
+| project
+    TimeGenerated,
+    DeviceName,
+    InitiatingProcessAccountName,
+    FileName,
+    ProcessCommandLine,
+    InitiatingProcessFileName
+| sort by TimeGenerated desc

@@ -1,0 +1,29 @@
+//============================================================================
+//Rule : Endpoint - Registry - Run Key Persistence
+//MITRE : T1547.001 (Boot or Logon Autostart Execution: Registry Run Keys)
+//Data Source : DeviceRegistryEvents (MDE)
+//Prerequisite : MDE onboarded, DeviceRegistryEvents connector enabled in Sentinel
+//Type : 偵測 Registry Run Key 新增可疑執行路徑（持久化）
+//Severity : HIGH - 攻擊者在 alice 的 HKCU Run Key 植入 demon.exe
+//Known FP : 合法軟體安裝時寫入 Run Key（OneDrive、Teams 等）
+//Tuning : 排除已知合法程式路徑（C:\Program Files、C:\Windows）；
+//         重點關注 C:\Users\ 路徑下的可執行檔
+//Note : 本 lab 中透過 Sliver C2 shell 寫入
+//       HKCU\Software\Microsoft\Windows\CurrentVersion\Run\WindowsUpdate = C:\Users\Public\demon.exe
+//============================================================================
+DeviceRegistryEvents
+| where ActionType == "RegistryValueSet"
+| where RegistryKey has_any (
+    "CurrentVersion\\Run",
+    "CurrentVersion\\RunOnce"
+)
+| where RegistryValueData has "Users\\"
+| project
+    TimeGenerated,
+    DeviceName,
+    InitiatingProcessAccountName,
+    RegistryKey,
+    RegistryValueName,
+    RegistryValueData,
+    InitiatingProcessFileName
+| sort by TimeGenerated desc

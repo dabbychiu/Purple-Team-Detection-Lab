@@ -1,0 +1,27 @@
+//============================================================================
+//Rule : Endpoint - Network - C2 Beacon from User Directory
+//MITRE : T1071.001 (Application Layer Protocol: Web Protocols)
+//Data Source : DeviceNetworkEvents (MDE)
+//Prerequisite : MDE onboarded, DeviceNetworkEvents connector enabled in Sentinel
+//Type : 偵測 C:\Users\ 路徑下的執行檔對外建立 HTTPS 連線（C2 beacon 特徵）
+//Severity : HIGH - 正常系統程序不應從 Users 路徑對外建立 443 連線
+//Known FP : OneDrive、使用者安裝的應用程式對外更新
+//Tuning : 排除已知合法程式（OneDrive.exe 等）；
+//         關聯 RegistryValueData 確認是否有 Run Key 持久化
+//Note : 本 lab 中 demon.exe 位於 C:\Users\Public\，
+//       定期回連 172.188.32.246:443，偵測訊號已驗證
+//============================================================================
+DeviceNetworkEvents
+| where RemotePort == 443
+| where ActionType == "ConnectionSuccess"
+| where RemoteIPType != "Private"
+| where InitiatingProcessFolderPath matches regex @"(?i)c:\\users\\"
+| where InitiatingProcessFileName != "onedrive.exe"
+| project
+    TimeGenerated,
+    DeviceName,
+    InitiatingProcessAccountName,
+    RemoteIP,
+    InitiatingProcessFileName,
+    InitiatingProcessFolderPath
+| sort by TimeGenerated desc

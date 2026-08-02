@@ -1,0 +1,30 @@
+//============================================================================
+//Rule : AD - SMB - Lateral Movement to File Server via Admin Share
+//MITRE : T1021.002 (Remote Services: SMB/Windows Admin Shares)
+//Data Source : SecurityEvent , EventID : 4624
+//Prerequisite : 啟用 "Audit Logon (Success)"
+//Type : 偵測使用 DA hash 橫向移動到檔案伺服器（Pass-the-Hash）
+//Severity : HIGH - 使用 DA 憑證橫向移動為高風險行為
+//Known FP : 合法 IT 管理員遠端管理（高 FP 率，需搭配白名單 Tuning）
+//Tuning : 加入已知合法來源 IP 白名單；限縮為 DA 等級帳號登入才告警；
+//         關聯前置的 DCSync 事件確認攻擊鏈，單獨命中不建議直接告警
+//Note : 本 lab 中使用 admin Kerberos TGT 以 smbclient.py 存取 SRV-FILE C$ 共享，
+//       偵測訊號已驗證；在真實企業環境需搭配白名單才能降低 FP
+//============================================================================
+SecurityEvent
+| where EventID == 4624
+| where LogonType == 3
+| where Computer has "SRV-FILE"
+| where TargetUserName !endswith "$"
+| where TargetUserName != "ANONYMOUS LOGON"
+// Tuning：加入已知合法來源 IP 白名單
+// | where IpAddress !in ("10.0.x.x", "已知管理 IP")
+| project
+    TimeGenerated,
+    Computer,
+    TargetUserName,
+    TargetDomainName,
+    IpAddress,
+    LogonType,
+    EventID
+| sort by TimeGenerated desc

@@ -1,0 +1,39 @@
+//============================================================================
+//Rule : Endpoint - LOLBin - Suspicious Process with Network Parameters
+//MITRE : T1218 (System Binary Proxy Execution)
+//Data Source : DeviceProcessEvents (MDE)
+//Prerequisite : MDE onboarded, DeviceProcessEvents connector enabled in Sentinel
+//Type : 偵測多種 LOLBin 執行時帶有網路或解碼參數（規避偵測）
+//Severity : HIGH - LOLBin 被用於規避特徵偵測並載入遠端 payload
+//Known FP : certutil 合法下載憑證；bitsadmin 合法下載更新
+//Tuning : 排除已知合法 certutil 用途；關聯後續網路連線確認外部目的地
+//Note : 本 lab 中透過 Sliver C2 執行 mshta.exe 載入遠端 HTA，
+//       偵測訊號已驗證
+//============================================================================
+DeviceProcessEvents
+| where FileName in~ (
+    "mshta.exe",
+    "rundll32.exe",
+    "regsvr32.exe",
+    "wscript.exe",
+    "cscript.exe",
+    "certutil.exe",
+    "bitsadmin.exe"
+)
+| where ProcessCommandLine has_any (
+    "http://",
+    "https://",
+    "javascript:",
+    "vbscript:",
+    "\\\\",
+    "-decode",
+    "-urlcache"
+)
+| project
+    TimeGenerated,
+    DeviceName,
+    InitiatingProcessAccountName,
+    FileName,
+    ProcessCommandLine,
+    InitiatingProcessFileName
+| sort by TimeGenerated desc

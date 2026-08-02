@@ -1,0 +1,28 @@
+//============================================================================
+//Rule : Endpoint - Service - Backup and Database Service Stopped
+//MITRE : T1489 (Service Stop)
+//Data Source : DeviceProcessEvents (MDE)
+//Prerequisite : MDE onboarded, DeviceProcessEvents connector enabled in Sentinel
+//Type : 偵測備份相關服務被停用（勒索軟體前置動作）
+//Severity : HIGH - 停用備份服務確保加密過程不被干擾
+//Known FP : 正常維護作業停止服務
+//Tuning : 關聯同一時段的 VSS 刪除和檔案大量修改事件
+//Note : 本 lab 中在 SRV-FILE 上執行 net stop VSS，偵測訊號已驗證
+//============================================================================
+DeviceProcessEvents
+| where FileName =~ "net.exe"
+| where ProcessCommandLine has "stop"
+| where ProcessCommandLine has_any (
+    "VSS",
+    "SQLWriter",
+    "wbengine",
+    "MSSQLSERVER"
+)
+| project
+    TimeGenerated,
+    DeviceName,
+    InitiatingProcessAccountName,
+    FileName,
+    ProcessCommandLine,
+    InitiatingProcessFileName
+| sort by TimeGenerated desc
