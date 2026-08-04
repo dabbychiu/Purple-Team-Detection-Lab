@@ -167,15 +167,6 @@
       }
     ]
   },
-  "T1110.001": {
-    "qradar": [
-      {
-        "name": "REMOVED",
-        "url": "",
-        "desc": "Apply Brute Force Success on events which are detected by the local system and when the event QID is one of the following (4624) Success Audit: An account was successfully logged on and when BB:CategoryDefinition : Authentication Failures match at least 5 times with the same Username in 10 minutes."
-      }
-    ]
-  },
   "T1591": {
     "detectable": false
   },
