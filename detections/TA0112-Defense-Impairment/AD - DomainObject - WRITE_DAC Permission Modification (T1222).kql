@@ -9,7 +9,7 @@
 //Tuning : 建立已授權帳號白名單；ObjectName 為網域根物件時視為 CRITICAL
 //============================================================================
 SecurityEvent 
-| where EventID == 4662 
+| where EventID == 4662 
 | where ObjectServer == "DS" 
 | where AccessMask == "0x40000" 
 | where SubjectUserName !endswith "$" 
