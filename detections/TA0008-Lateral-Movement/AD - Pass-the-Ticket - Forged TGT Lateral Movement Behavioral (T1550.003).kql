@@ -1,0 +1,25 @@
+//============================================================================
+//Rule : AD - Pass-the-Ticket - Forged TGT Lateral Movement (Behavioral)
+//MITRE : T1550.003 (Pass the Ticket)
+//Data Source : SecurityEvent , EventID : 4624
+//Prerequisite : 多台目標主機納入 Sentinel 收集
+//Type : 偵測同一帳號短時間內從同一 IP 對多台主機發起 Kerberos 登入——PtT 橫向特徵
+//Severity : HIGH - 同一 IP 打多台主機指向票證注入後的橫向移動
+//Known FP : 合法管理員從跳板機管理多台；以授權帳號和 IP 基線排除
+//Tuning : 調整 TargetHosts 門檻；聚焦非管理帳號的多主機存取
+//Note : 本 lab Silver Ticket 遠端執行受 cifs SPN 限制（atexec/smbexec ACCESS_DENIED），
+//       存取高價值 Share 得手；行為層規則設計完成，多主機驗證待環境擴充
+//============================================================================
+SecurityEvent
+| where EventID == 4624
+| where LogonType == 3 and AuthenticationPackageName == "Kerberos"
+| where TargetUserName !endswith "$"
+| where TimeGenerated > ago(1h)
+| summarize
+    TargetHosts = dcount(Computer),
+    SourceIPs = dcount(IpAddress),
+    HostSet = make_set(Computer, 10),
+    IPSet = make_set(IpAddress, 10)
+    by TargetUserName, bin(TimeGenerated, 15m)
+| where TargetHosts >= 2 and SourceIPs == 1
+| order by TargetHosts desc

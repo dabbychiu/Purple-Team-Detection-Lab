@@ -1,0 +1,23 @@
+//============================================================================
+//Rule : AD - Pass-the-Ticket - Anomalous Kerberos Logon Source
+//MITRE : T1550.003 (Use Alternate Authentication Material: Pass the Ticket)
+//Data Source : SecurityEvent , EventID : 4624
+//Prerequisite : 目標服務主機（SRV-FILE）已納入 Sentinel 收集範圍，SRV-FILE AMA 已安裝
+//Type : 偵測 Kerberos Logon Type 3 來自非預期來源 IP——PtT 橫向移動特徵
+//Severity : HIGH - 工作站/服務以偽造票橫向存取，來源 IP 通常為攻擊者機器
+//Known FP : 合法的跨網段 Kerberos 存取；以已知服務帳號和授權來源 IP 白名單排除
+//Tuning : 聚焦高價值目標（SRV-FILE/DC）；調整 IP 排除範圍符合實際拓撲
+//Note : 本 lab 以 Silver Ticket（cifs SPN）橫向，SrcIp=10.0.5.4（Kali），
+//       LogonType=3，Kerberos，TargetUserName=Administrator；偵測訊號已驗證
+//============================================================================
+SecurityEvent
+| where EventID == 4624
+| where LogonType == 3
+| where AuthenticationPackageName == "Kerberos"
+| where Computer has "SRV-FILE"
+| where IpAddress !startswith "10.0.3."
+| where IpAddress !startswith "10.0.4."
+| where IpAddress != "-" and IpAddress != "::1"
+| where TargetUserName !endswith "$"
+| project TimeGenerated, TargetUserName, Computer, IpAddress, LogonType, AuthenticationPackageName
+| order by TimeGenerated desc

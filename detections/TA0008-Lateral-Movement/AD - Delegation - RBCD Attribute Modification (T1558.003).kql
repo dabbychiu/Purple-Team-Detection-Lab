@@ -1,0 +1,22 @@
+//============================================================================
+//Rule : AD - Delegation - RBCD Attribute Modification
+//MITRE : T1558.003 / RBCD abuse
+//Data Source : SecurityEvent , EventID : 5136
+//Prerequisite : DC 啟用 "Audit Directory Service Changes (Success)"，並對電腦物件設 SACL
+//Type : 偵測 msDS-AllowedToActOnBehalfOfOtherIdentity 屬性被非機器帳號寫入——RBCD 攻擊寫入端
+//Severity : HIGH - RBCD 屬性寫入是資源型限制委派濫用的最早攔截點
+//Known FP : 合法委派設定變更（應由已授權管理帳號執行，可白名單）
+//Tuning : 對比授權委派管理清單；非清單帳號寫入即高可信
+//Note : 本 lab 中 Alice 以 impacket-rbcd 寫入 SRV-FILE$ 的 RBCD 屬性成功，
+//       但 DC 本機 5136 不產生（impacket LDAP channel 不觸發稽核事件，即使設 SACL）；
+//       規則邏輯設計完成，標概念設計；labadmin 本機 PowerShell Set-Acl 可觸發 5136 作為基線驗證
+//============================================================================
+SecurityEvent
+| where EventID == 5136
+| extend AttrName = extract(@'<Data Name="AttributeLDAPDisplayName">([^<]+)</Data>', 1, tostring(EventData))
+| extend SubjectUser = extract(@'<Data Name="SubjectUserName">([^<]+)</Data>', 1, tostring(EventData))
+| extend ObjectDN = extract(@'<Data Name="ObjectDN">([^<]+)</Data>', 1, tostring(EventData))
+| where AttrName == "msDS-AllowedToActOnBehalfOfOtherIdentity"
+| where SubjectUser !endswith "$"
+| project TimeGenerated, SubjectUser, AttrName, ObjectDN, Computer
+| order by TimeGenerated desc
