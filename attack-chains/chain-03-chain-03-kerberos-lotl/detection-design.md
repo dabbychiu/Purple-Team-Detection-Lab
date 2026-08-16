@@ -9,7 +9,7 @@
 
 Chain 3 的核心主張是：同一個攻擊技術可以有三種不同深度的偵測，攻擊者繞過第一層時第二層接住，繞過第二層時第三層接住。
 
-| 層級 | 偵測依據 | 韌性 | 被繞過條件 | 誤報率 |
+| 層級 | 偵測依據 | 規避難度 | 被繞過條件 | 誤報率 |
 |---|---|---|---|---|
 | 工具簽章層 | 已知攻擊工具的命令列特徵（如 SharpHound.exe） | 最低 | 換工具、改名、LOTL | 最低 |
 | 原語層 | 協定/API 的本質行為（4662/4768/4769，工具無關） | 中 | 低速稀釋門檻、AES 降級規避 | 中 |
@@ -51,7 +51,7 @@ Alice 用 DirectorySearcher 對 user/group/computer 做完整枚舉，DC01 本�
 AccessMask 初版寫 `has_any("0x10","0x100")`（照通用文件），環境實測：機器帳號背景活動為 `0x1`、使用者 LDAP 屬性讀取為 `0x10`。收斂為 `== "0x10"`，同時加入 `SubjectAccount startswith "CORP\\"` 排除本機帳號 labadmin 的 FP（labadmin 也觸發了行為層規則，因為它的管理操作跨 40 分鐘，踩過 SpanMin 門檻）。
 
 **學到的**
-門檻必須用真實遙測校準，不能沿用通用文件的假設值。任何寫死的數字都是一個「等待被推翻的假設」。
+門檻必須用真實遙測校準，不能沿用通用文件的假設值。
 
 ---
 
@@ -61,7 +61,7 @@ AccessMask 初版寫 `has_any("0x10","0x100")`（照通用文件），環境實�
 Kerberoasting 攻擊者偏好 RC4（`TicketEncryptionType == "0x17"`），因為 RC4 hash 比 AES hash 更容易離線破解。這是業界通用文件和多數規則範本的預設假設。
 
 **執行攻擊後發現（Stage 2 AS-REP）**
-DC01 的 4768 事件顯示 `TicketEncryptionType = 0x12`（AES256-CTS-HMAC-SHA1-96），不是 0x17。
+DC01 的 4768 事件顯示 `TicketEncryptionType = 0x12`，不是 0x17。
 
 **執行攻擊後發現（Stage 3 Kerberoasting）**
 impacket 預設嘗試 RC4 請求，DC 直接回應 `KDC_ERR_ETYPE_NOSUPP`——DC 根本拒絕 RC4 請求。改用 `-k -no-pass`（先取 AES TGT 再索票）才成功，取得的 hash 格式是 `$krb5tgs$18$`（AES256），不是 `$krb5tgs$23$`（RC4）。
@@ -71,7 +71,7 @@ impacket 預設嘗試 RC4 請求，DC 直接回應 `KDC_ERR_ETYPE_NOSUPP`——D
 
 **校準**
 - Stage 2 AS-REP 規則：移除 `TicketEncryptionType` 限定，只靠 `PreAuthType == "0"` 作為核心指紋（因為 AS-REP Roasting 的本質是無預先驗證，加密類型是次要的）
-- Stage 3 Kerberoasting 規則：移除 enctype 限定，改看「索票量」（Multi-SPN 聚合）和「索票無登入」的行為指紋
+- Stage 3 Kerberoasting 規則：改看「索票量」（Multi-SPN 聚合）和「索票無登入」的行為指紋
 
 **延伸洞察**
 這帶出一個更深的偵測工程判斷：**不要以加密類型為偵測依據，要以攻擊行為為偵測依據。** 加密類型是環境設定，可能隨政策改變；「批次對多個 SPN 索票」是攻擊意圖，換了加密類型也一樣存在。
@@ -113,7 +113,7 @@ DCR 只解析了常用欄位（TargetUserName、IpAddress、Computer 這類）�
 
 ## 三、行為層的誤判取捨
 
-行為層是三層中韌性最高的，但也是**最容易誤判的**。這個反直覺的現象值得記錄清楚。
+行為層是三層中規避難度最高的，但也是**最容易誤判的**。
 
 ### 為什麼行為層誤判率偏高
 
@@ -139,9 +139,10 @@ DCR 只解析了常用欄位（TargetUserName、IpAddress、Computer 這類）�
 
 ### 壓誤判的三個方法
 
-1. **白名單服務帳號**：誤判源幾乎都是可列舉、固定的服務帳號，一次列好長期有效
-2. **只看人類帳號**：正常人類使用者不會持續 2 小時規律查 AD，普通使用者帳號觸發即高可信（指向被植入自動化偵察的淪陷帳號）
-3. **看間隔規律性**：機器間隔有特徵（固定或偽隨機），人類查詢零星不規律
+1. **白名單服務帳號**：誤判源幾乎都是可列舉、固定的服務帳號，一次列好長期有效<br>
+ `但相較於大型企業的系統與資安分權概念來看，機器汰換與拓建新增還是會存在需要溝通或短期誤報的問題`
+3. **只看人類帳號**：正常人類使用者不會持續 2 小時規律查 AD，普通使用者帳號觸發即高可信（指向被植入自動化偵察的淪陷帳號）
+4. **看間隔規律性**：機器間隔有特徵（固定或偽隨機），人類查詢零星不規律
 
 ---
 
@@ -159,7 +160,7 @@ Chain 3 遇到了四個「攻擊被環境擋住」的斷點，但這些斷點本
 
 ### MDE 攔截 LSASS——comsvcs MiniDump
 
-**現象**：comsvcs MiniDump 在 EMPLOYEE01 和 DC01 均被 MDE（HackTool:Win32/DumpLsass.H）在 rundll32 執行層級攔截。
+**現象**：comsvcs MiniDump 在 EMPLOYEE01 和 DC01 均被 MDE 在 rundll32 執行層級攔截。
 
 **偵測含義**：MDE 的工具簽章層在這裡有效——與 Stage 1 LOTL 讓工具簽章層失效形成對比。這說明三層方法論的另一面：**特徵明顯的攻擊，工具簽章層就夠了**；特徵不明顯的攻擊（LOTL），才需要往原語層和行為層走。Stage 4b gMSA 是 LSASS 被擋後的替代路徑，走 4662 SACL 偵測。
 
