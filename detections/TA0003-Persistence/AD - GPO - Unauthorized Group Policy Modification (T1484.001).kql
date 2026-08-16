@@ -1,0 +1,23 @@
+//============================================================================
+//Rule : AD - GPO - Unauthorized Group Policy Modification
+//MITRE : T1484.001 (Domain Policy Modification: Group Policy Modification)
+//Data Source : SecurityEvent , EventID : 5136/5137
+//Prerequisite : DC 啟用 "Audit Directory Service Changes (Success)"
+//Type : 偵測非授權帳號修改 groupPolicyContainer 物件——GPO 濫用持久化原語
+//Severity : HIGH - GPO 修改可對大量端點下發惡意設定
+//Known FP : 合法 GPO 管理（應以 GPO 管理員白名單排除）
+//Tuning : 維護授權 GPO 管理帳號清單；搭配下游執行關聯規則確認影響
+//Note : 本 lab 中以 admin NTLM hash 透過 impacket-smbclient 寫入 SYSVOL，
+//       包含 ScheduledTasks.xml、scripts.ini、test.bat、GPT.INI（Version=65539）；
+//       impacket 遠端寫入不觸發 5136；規則標待驗證，待改用 PowerShell New-GPO API 驗證
+//============================================================================
+SecurityEvent
+| where EventID in (5136, 5137)
+| extend AttrName = extract(@'<Data Name="AttributeLDAPDisplayName">([^<]+)</Data>', 1, tostring(EventData))
+| extend SubjectUser = extract(@'<Data Name="SubjectUserName">([^<]+)</Data>', 1, tostring(EventData))
+| extend ObjectDN = extract(@'<Data Name="ObjectDN">([^<]+)</Data>', 1, tostring(EventData))
+| extend ObjectClass = extract(@'<Data Name="ObjectClass">([^<]+)</Data>', 1, tostring(EventData))
+| where ObjectClass == "groupPolicyContainer"
+| where SubjectUser !endswith "$"
+| project TimeGenerated, SubjectUser, AttrName, ObjectDN, Computer
+| order by TimeGenerated desc

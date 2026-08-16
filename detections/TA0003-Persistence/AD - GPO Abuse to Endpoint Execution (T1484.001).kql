@@ -1,0 +1,33 @@
+//============================================================================
+//Rule : AD - GPO Abuse to Endpoint Execution (Cross-Source Correlation)
+//MITRE : T1484.001 (Group Policy Modification)
+//Data Source : SecurityEvent 5136 + DeviceProcessEvents (MDE)
+//Prerequisite : DC 目錄變更稽核 + 端點 MDE onboard
+//Type : 關聯 GPO 變更（5136）與受影響端點的下游 startup/task 執行——證明 GPO 濫用實際生效
+//Severity : CRITICAL - GPO 變更導致端點執行是完整攻擊生效的鐵證
+//Known FP : 合法 GPO 部署腳本；以授權管理帳號與已知部署基線排除
+//Tuning : 調整關聯時間窗；此為全 chain 最複雜的跨源關聯，注意大表 join 效能
+//Note : 本 lab 中 Windows 11 端點不觸發 GPO Preferences CSE（Immediate Task/Startup Script），
+//       impacket 遠端寫入 SYSVOL 不觸發 5136，GPO 下游執行無遙測；規則標概念設計
+//       下游執行不觸發根本原因：Windows 11 對手動 SYSVOL 寫入的 CSE 觸發條件嚴格，
+//       需透過正式 GPO API（New-GPO）才能正確設定 CSE GUID 和觸發下游執行
+//============================================================================
+let GPOChanges = SecurityEvent
+    | where EventID == 5136
+    | extend ObjectClass = extract(@'<Data Name="ObjectClass">([^<]+)</Data>', 1, tostring(EventData))
+    | extend SubjectUser = extract(@'<Data Name="SubjectUserName">([^<]+)</Data>', 1, tostring(EventData))
+    | where ObjectClass == "groupPolicyContainer"
+    | where SubjectUser !endswith "$"
+    | where TimeGenerated > ago(6h)
+    | project GPOTime=TimeGenerated, Modifier=SubjectUser;
+GPOChanges
+| join kind=inner (
+    DeviceProcessEvents
+    | where InitiatingProcessFileName in~ ("gpscript.exe", "svchost.exe", "cmd.exe", "powershell.exe")
+    | where ProcessCommandLine has_any ("startup", "scheduledtask", "test.bat", "gpo")
+    | where TimeGenerated > ago(6h)
+    | project ExecTime=Timestamp, DeviceName, ProcessCommandLine
+) on $left.GPOTime == $right.ExecTime
+| where ExecTime between (GPOTime .. (GPOTime + 6h))
+| project GPOTime, Modifier, ExecTime, DeviceName, ProcessCommandLine
+| order by GPOTime desc
