@@ -1,0 +1,36 @@
+//============================================================================
+//Rule : AD - KDC - Kerberoast Ticket Without Subsequent Logon (Behavioral)
+//MITRE : T1558.003 (Kerberoasting)
+//Data Source : SecurityEvent , EventID : 4769 + 4624
+//Prerequisite : 啟用 Kerberos 服務票稽核與登入稽核
+//Type : 偵測被索取的服務帳號後續無對應 4624 登入——票被拿去離線破解而非實際使用的因果落差
+//Severity : HIGH - 索票卻不使用是 Kerberoasting 的行為指紋
+//Known FP : 服務健康檢查可能索票不登入；以服務帳號白名單排除
+//Tuning : 調整時間窗與 RoastedNoLogon 門檻
+//Note : 比對對象為 ServiceName（被索票的服務帳號）vs 4624 Account，非 Requester vs Account；
+//       版本 B（ServiceName vs Account）才正確對應「票是否被實際使用」的偵測意圖；
+//       RoastedNoLogon=6（含 corp.lab\\ 前綴格式重複），dcount 去重後實際為 3 個帳號；
+//       SrcIp filter 聚焦 Kali 網段（實際部署應改為排除已知合法來源）；偵測訊號已驗證
+//============================================================================
+let TicketReqs = SecurityEvent
+    | where EventID == 4769
+    | extend ServiceName = extract(@'<Data Name="ServiceName">([^<]+)</Data>', 1, tostring(EventData))
+    | extend SrcIp = extract(@'<Data Name="IpAddress">([^<]+)</Data>', 1, tostring(EventData))
+    | extend Requester = extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData))
+    | where ServiceName !startswith "krbtgt"
+    | where ServiceName !endswith "$"
+    | where TimeGenerated > ago(2h)
+    | project ReqTime=TimeGenerated, ServiceName, SrcIp, Requester;
+let Logons = SecurityEvent
+    | where EventID == 4624
+    | where TimeGenerated > ago(2h)
+    | project LogonTime=TimeGenerated, Account=TargetUserName;
+TicketReqs
+| join kind=leftanti Logons on $left.ServiceName == $right.Account
+| summarize
+    RoastedNoLogon = dcount(ServiceName),
+    Services = make_set(ServiceName, 20),
+    Requesters = make_set(Requester, 10)
+    by SrcIp, bin(ReqTime, 30m)
+| where RoastedNoLogon >= 2
+| order by RoastedNoLogon desc

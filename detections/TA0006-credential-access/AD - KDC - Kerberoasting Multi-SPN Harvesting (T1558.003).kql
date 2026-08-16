@@ -1,0 +1,31 @@
+//============================================================================
+//Rule : AD - KDC - Kerberoasting Multi-SPN Harvesting (Primitive, upgraded)
+//MITRE : T1558.003 (Kerberoasting)
+//Data Source : SecurityEvent , EventID : 4769
+//Prerequisite : DC 啟用 "Audit Kerberos Service Ticket Operations (Success)"
+//Type : 偵測短時間對多個服務 SPN 索取服務票——工具無關的收割特徵（升級自既有單事件規則）
+//Severity : HIGH - 集中索多個服務票為 Kerberoasting 收割典型模式
+//Known FP : 資產盤點/監控工具批次查詢；應以服務帳號白名單排除
+//Tuning : 調整 RequestCount 門檻；此規則不限加密類型（AES/RC4 均抓，避免 AES 漏掉）
+//Note : 本 lab DC 強制 AES（Server 2025），RC4 請求報 KDC_ERR_ETYPE_NOSUPP；
+//       原 Chain 1 RC4-only 規則在此環境永不觸發，本規則移除 enctype 限定；
+//       4769 欄位同樣自 EventData XML 以 extract() 取值；偵測訊號已驗證
+//============================================================================
+SecurityEvent
+| where EventID == 4769
+| extend
+    ServiceName = extract(@'<Data[^>]*Name="ServiceName"[^>]*>([^<]+)</Data>', 1, tostring(EventData)),
+    TargetUserName = extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData)),
+    TicketEncryptionType = extract(@'<Data Name="TicketEncryptionType">([^<]+)</Data>', 1, tostring(EventData)),
+    IpAddress = extract(@'<Data Name="IpAddress">([^<]+)</Data>', 1, tostring(EventData))
+| where ServiceName !startswith "krbtgt"
+| where ServiceName !endswith "$"
+| where TargetUserName !endswith "$"
+| summarize
+    RequestCount = count(),
+    SPNSet = make_set(ServiceName, 10),
+    EncTypes = make_set(TicketEncryptionType, 5)
+    by TargetUserName, IpAddress, bin(TimeGenerated, 5m)
+| where RequestCount >= 3
+| project TimeGenerated, TargetUserName, IpAddress, RequestCount, SPNSet, EncTypes
+| order by RequestCount desc

@@ -1,0 +1,24 @@
+//============================================================================
+//Rule : AD - Kerberos - PAC Privilege Anomaly (Diamond/Sapphire, Auxiliary)
+//MITRE : T1558 (Diamond / Sapphire Ticket)
+//Data Source : SecurityEvent , EventID : 4769 + 4672
+//Prerequisite : 啟用服務票與特殊權限指派稽核
+//Type : 偵測低權帳號的票證伴隨高權限指派——PAC 可能被竄改的間接特徵
+//Severity : MEDIUM - 輔助偵測；Diamond/Sapphire PAC 內容看似合法，標準日誌僅能部分偵測
+//Known FP : 合法權限提升；信心較低，需人工佐證
+//Tuning : 此規則為輔助；完整偵測需 PAC 深度解析，超出標準 SIEM 日誌範圍
+//Note : 環境限制（Server 2025 PAC 驗證）：Diamond/Sapphire 在本環境同樣被攔截；
+//       規則邏輯設計完成，適用於 PAC 驗證較弱的環境；概念設計
+//============================================================================
+let PrivAssign = SecurityEvent
+    | where EventID == 4672
+    | project PrivTime=TimeGenerated, PrivAccount=SubjectUserName;
+SecurityEvent
+| where EventID == 4769
+| extend TargetUser = extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData))
+| extend ServiceName = extract(@'<Data Name="ServiceName">([^<]+)</Data>', 1, tostring(EventData))
+| where TimeGenerated > ago(1h)
+| join kind=inner PrivAssign on $left.TargetUser == $right.PrivAccount
+| where PrivTime between (TimeGenerated .. (TimeGenerated + 5m))
+| project TimeGenerated, TargetUser, ServiceName, PrivTime, Computer
+| order by TimeGenerated desc

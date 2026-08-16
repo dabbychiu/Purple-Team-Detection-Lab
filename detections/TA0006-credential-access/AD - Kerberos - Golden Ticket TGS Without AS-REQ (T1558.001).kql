@@ -1,0 +1,30 @@
+//============================================================================
+//Rule : AD - Kerberos - Golden Ticket (TGS Without Preceding AS-REQ)
+//MITRE : T1558.001 (Golden Ticket)
+//Data Source : SecurityEvent , EventID : 4768 + 4769
+//Prerequisite : 啟用 Kerberos 認證與服務票稽核
+//Type : 偵測有服務票請求（4769）卻無對應 TGT 取得（4768）——偽造 TGT 的因果缺失特徵
+//Severity : CRITICAL - Golden Ticket 完全繞過 AS 交換，此因果落差是核心指紋
+//Known FP : 票證快取續用可能造成時間錯位；以較寬時間窗與帳號基線降噪
+//Tuning : 調整關聯時間窗；搭配異常 lifetime 規則交叉確認
+//Note : 環境限制（Server 2025 PAC 驗證）：Golden Ticket 在本環境被擋，無遙測可驗證；
+//       規則邏輯設計完成，適用於 PAC 驗證未啟用或較舊版 Server 的環境
+//============================================================================
+let ASReqs = SecurityEvent
+    | where EventID == 4768
+    | extend TargetUser = extract(@'Name="TargetUserName">([^<]+)<', 1, EventData)
+    | extend SrcIp = extract(@'Name="IpAddress">([^<]+)<', 1, EventData)
+    | where TimeGenerated > ago(2h)
+    | project ASTime=TimeGenerated, TargetUser, SrcIp;
+SecurityEvent
+| where EventID == 4769
+| where TimeGenerated > ago(2h)
+| extend TargetUser = extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData))
+| extend ServiceName = extract(@'<Data Name="ServiceName">([^<]+)</Data>', 1, tostring(EventData))
+| extend SrcIp = extract(@'<Data Name="IpAddress">([^<]+)</Data>', 1, tostring(EventData))
+| where ServiceName !startswith "krbtgt"
+| join kind=leftanti ASReqs on $left.TargetUser == $right.TargetUser
+| summarize TgsCount=count(), Services=make_set(ServiceName, 20)
+    by TargetUser, SrcIp, bin(TimeGenerated, 1h)
+| where TgsCount >= 1
+| order by TimeGenerated desc

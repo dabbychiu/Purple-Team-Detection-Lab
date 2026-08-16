@@ -1,0 +1,28 @@
+//============================================================================
+//Rule : AD - Kerberos - Silver Ticket (Service Access Without DC Kerberos Log)
+//MITRE : T1558.002 (Silver Ticket)
+//Data Source : SecurityEvent，SRV-FILE 4624 + DC01 4769
+//Prerequisite : 目標服務主機（SRV-FILE）與 DC 皆納入 Sentinel 日誌收集，SRV-FILE AMA 已安裝
+//Type : 偵測目標服務有登入（4624）但 DC 無對應服務票發放（4769）——Silver Ticket 繞過 DC 的矛盾
+//Severity : CRITICAL - Silver Ticket 不經 DC，此「服務有存取、DC 無紀錄」矛盾是唯一指紋
+//Known FP : 快取票證續用；以較寬時間窗與服務帳號基線降噪
+//Tuning : 針對高價值服務主機（SRV-FILE）個別套用；SRV-FILE AMA 為必要前提
+//Note : 本 lab 以 cifs/SRV-FILE.corp.lab Silver Ticket 存取 C$/FinanceShare/HRShare，
+//       SRV-FILE 4624（LogonType=3，Kerberos，SrcIp=10.0.5.4）有，DC 4769 無；
+//       SRV-FILE AMA 於執行期間安裝後偵測訊號已驗證
+//============================================================================
+let DCTickets = SecurityEvent
+    | where Computer has "DC01" and EventID == 4769
+    | extend TargetUser = extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData))
+    | extend ServiceName = extract(@'<Data Name="ServiceName">([^<]+)</Data>', 1, tostring(EventData))
+    | project TgsTime=TimeGenerated, TargetUser, ServiceName;
+SecurityEvent
+| where Computer has "SRV-FILE" and EventID == 4624
+| where LogonType == 3
+| where AuthenticationPackageName == "Kerberos"
+| where TargetUserName !endswith "$"
+| where TimeGenerated > ago(3h)
+| project LogonTime=TimeGenerated, TargetUserName, Computer, IpAddress
+| join kind=leftanti DCTickets on $left.TargetUserName == $right.TargetUser
+| project LogonTime, TargetUserName, Computer, IpAddress
+| order by LogonTime desc

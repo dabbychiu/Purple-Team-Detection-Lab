@@ -1,0 +1,24 @@
+//============================================================================
+//Rule : AD - KDC - AS-REP Roasting (Pre-Auth Disabled TGT Request)
+//MITRE : T1558.004 (Steal or Forge Kerberos Tickets: AS-REP Roasting)
+//Data Source : SecurityEvent , EventID : 4768
+//Prerequisite : DC 啟用 "Audit Kerberos Authentication Service (Success)"
+//Type : 偵測預先驗證停用（PreAuthType 0）的 TGT 請求——AS-REP Roasting 核心特徵
+//Severity : HIGH - 直接指向可離線破解的憑證竊取，誤報率低
+//Known FP : 極少；少數老舊系統或特殊服務帳號可能合法關閉預先驗證（應清點並白名單）
+//Tuning : 先盤點網域內所有 DONT_REQ_PREAUTH 帳號建立基線；非基線帳號出現此事件即高可信
+//Note : 4768 的 PreAuthType/TicketEncryptionType 未被 Sentinel DCR 原生解析，
+//       皆從 EventData XML 以 extract() 取值（環境校準發現）
+//       加密類型不限（DC 實回 AES256 0x12，RC4 0x17 假設在 Server 2025 環境失效）
+//       僅以 PreAuthType==0 為核心指紋，避免漏掉 AES 帳號；偵測訊號已驗證
+//============================================================================
+SecurityEvent
+| where EventID == 4768
+| extend PreAuthType = extract(@'Name="PreAuthType">([^<]+)<', 1, EventData)
+| extend EncType = extract(@'Name="TicketEncryptionType">([^<]+)<', 1, EventData)
+| extend TargetUser = extract(@'Name="TargetUserName">([^<]+)<', 1, EventData)
+| extend SrcIp = extract(@'Name="IpAddress">([^<]+)<', 1, EventData)
+| where PreAuthType == "0"
+| where TargetUser !endswith "$"
+| project TimeGenerated, TargetUser, EncType, PreAuthType, SrcIp, Computer
+| order by TimeGenerated desc

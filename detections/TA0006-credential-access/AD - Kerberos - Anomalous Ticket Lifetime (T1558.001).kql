@@ -1,0 +1,22 @@
+//============================================================================
+//Rule : AD - Kerberos - Anomalous Ticket Lifetime
+//MITRE : T1558.001 (Golden Ticket)
+//Data Source : SecurityEvent , EventID : 4769
+//Prerequisite : DCR 需 parse 出票證起訖時間欄位（視環境而定，否則本規則標概念設計）
+//Type : 偵測票證有效期超過網域預設上限——偽造票常帶超長 lifetime
+//Severity : HIGH - 超長 lifetime 為票證鍛造常見特徵
+//Known FP : 特殊服務票政策；應對照網域 Kerberos 原則基線
+//Tuning : 依網域 MaxTicketAge 原則調整門檻（預設 10 小時）
+//Note : 概念設計；StartTime/EndTime 欄位在本環境 DCR 未原生解析
+//============================================================================
+SecurityEvent
+| where EventID == 4769
+| extend StartTime = extract(@'<Data Name="StartTime">([^<]+)</Data>', 1, tostring(EventData))
+| extend EndTime = extract(@'<Data Name="EndTime">([^<]+)</Data>', 1, tostring(EventData))
+| extend TicketLife = todatetime(EndTime) - todatetime(StartTime)
+| where isnotempty(StartTime) and isnotempty(EndTime)
+| where TicketLife > 10h
+| extend TargetUser = extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData))
+| extend ServiceName = extract(@'<Data Name="ServiceName">([^<]+)</Data>', 1, tostring(EventData))
+| project TimeGenerated, TargetUser, ServiceName, TicketLife, Computer
+| order by TicketLife desc

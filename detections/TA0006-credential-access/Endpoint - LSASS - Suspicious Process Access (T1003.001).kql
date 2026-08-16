@@ -1,0 +1,31 @@
+//============================================================================
+//Rule : Endpoint - LSASS - Suspicious Process Access (OpenProcess)
+//MITRE : T1003.001 (OS Credential Dumping: LSASS Memory)
+//Data Source : DeviceEvents (MDE)
+//Prerequisite : EMPLOYEE01 已 MDE onboard；DeviceEvents connector 啟用
+//Type : 偵測非已知合法程序對 lsass.exe 發出 OpenProcess handle——記憶體憑證竊取原語特徵
+//Severity : HIGH - 對 LSASS 的異常存取高度指向憑證傾印
+//Known FP : EDR/防毒、系統程序合法存取（已排除）；備份代理程式需白名單
+//Tuning : 依環境擴充合法程序白名單；搭配 access mask 提高精度
+//Note : 概念設計；Stage 4a comsvcs MiniDump 在 EMPLOYEE01/DC01 均被 MDE
+//       以 HackTool:Win32/DumpLsass.H 攔截（Event ID 1116/1117，Severity High）；
+//       MDE 工具簽章層有效展示，與 Stage 1 LOTL 讓工具層失效形成對比
+//============================================================================
+DeviceEvents
+| where ActionType == "OpenProcessApiCall"
+| where FileName =~ "lsass.exe"
+| where InitiatingProcessFileName !in~ (
+    "MsMpEng.exe", "wininit.exe", "csrss.exe", "services.exe",
+    "svchost.exe", "lsm.exe", "winlogon.exe"
+)
+| where not(InitiatingProcessFolderPath has_any (
+    @"\Windows\System32\",
+    @"\Program Files\Windows Defender\"
+))
+| project
+    Timestamp,
+    DeviceName,
+    InitiatingProcessFileName,
+    InitiatingProcessCommandLine,
+    InitiatingProcessAccountName
+| order by Timestamp desc

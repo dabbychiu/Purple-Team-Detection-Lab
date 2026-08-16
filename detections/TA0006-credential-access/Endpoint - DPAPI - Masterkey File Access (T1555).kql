@@ -1,0 +1,21 @@
+//============================================================================
+//Rule : Endpoint - DPAPI - Masterkey File Access
+//MITRE : T1555 (Credentials from Password Stores)
+//Data Source : DeviceFileEvents (MDE)
+//Prerequisite : EMPLOYEE01 已 MDE onboard
+//Type : 偵測非系統程序存取 DPAPI masterkey 目錄——把無聲的 CryptUnprotectData 轉為可見存取
+//Severity : MEDIUM - DPAPI masterkey 存取可能合法，需搭配程序脈絡判斷
+//Known FP : 合法應用程式存取自身憑證；以程序白名單降噪
+//Tuning : 聚焦非使用者互動程序或異常路徑發起的存取
+//Note : 概念設計；Stage 4a LSASS 被攔截，DPAPI 為替代路徑
+//============================================================================
+DeviceFileEvents
+| where FolderPath has @"\Microsoft\Protect\"
+| where InitiatingProcessFileName !in~ ("svchost.exe", "lsass.exe", "dphost.exe")
+| project
+    Timestamp,
+    DeviceName,
+    FolderPath,
+    InitiatingProcessFileName,
+    InitiatingProcessCommandLine
+| order by Timestamp desc

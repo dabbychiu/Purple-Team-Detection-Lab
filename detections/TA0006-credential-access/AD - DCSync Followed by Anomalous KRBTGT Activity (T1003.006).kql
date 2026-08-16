@@ -1,0 +1,43 @@
+//============================================================================
+//Rule : AD - DCSync Followed by Anomalous KRBTGT Activity (Behavioral)
+//MITRE : T1003.006 -> T1558.001 (DCSync 銜接票證鍛造)
+//Data Source : SecurityEvent , EventID : 4662 + 4769
+//Prerequisite : 啟用目錄服務存取稽核與 Kerberos 服務票稽核
+//Type : 偵測非機器帳號複寫（DCSync）後緊接的異常票證活動——把 DCSync 從單事件升級為攻擊鏈節點
+//Severity : CRITICAL - DCSync 取 KRBTGT 後的票證活動高度指向 Golden Ticket 前置
+//Known FP : 極少；合法 DCSync 僅限 DC 機器帳號（已排除）
+//Tuning : 調整關聯時間窗；SrcIp filter 在 lab 精準指向 Kali，實際部署改為排除已知合法 IP
+//Note : 本 lab 中 DCSync(12:40) 後接 Kerberoasting 4769(12:02-12:11)，時序相反；
+//       雙向時間窗（DCSyncTime ± 2h）確保關聯成功；偵測訊號已驗證
+//       bin() 去重（bin(DCSyncTime, 1h)）可避免三筆重複，待下版修正
+//============================================================================
+let DCSyncEvents = SecurityEvent
+    | where EventID == 4662 and ObjectServer == "DS"
+    | where Properties has_any (
+        "1131f6aa-9c07-11d1-f79f-00c04fc2dcd2",
+        "1131f6ad-9c07-11d1-f79f-00c04fc2dcd2")
+    | where SubjectUserName !endswith "$"
+    | where SubjectUserName != "-"
+    | where TimeGenerated > ago(3h)
+    | project DCSyncTime=TimeGenerated, Attacker=SubjectAccount, Computer;
+DCSyncEvents
+| join kind=inner (
+    SecurityEvent
+    | where EventID == 4769
+    | where TimeGenerated > ago(3h)
+    | extend ServiceName = extract(@'<Data Name="ServiceName">([^<]+)</Data>', 1, tostring(EventData))
+    | extend TargetUser = extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData))
+    | extend SrcIp = extract(@'<Data Name="IpAddress">([^<]+)</Data>', 1, tostring(EventData))
+    | where ServiceName !startswith "krbtgt"
+    | where TargetUser !endswith "$"
+    | where SrcIp startswith "::ffff:10.0.5."
+    | project TgsTime=TimeGenerated, ServiceName, TargetUser, SrcIp, Computer
+) on Computer
+| where TgsTime between ((DCSyncTime - 2h) .. (DCSyncTime + 2h))
+| summarize
+    TicketCount = count(),
+    Services = make_set(ServiceName, 20),
+    FirstTgs = min(TgsTime),
+    LastTgs = max(TgsTime)
+    by DCSyncTime, Attacker, SrcIp
+| order by DCSyncTime desc
