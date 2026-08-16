@@ -49,7 +49,7 @@ flowchart TD
 
 ## 三層偵測方法論
 
-| 層級 | 偵測依據 | 韌性 | 被繞過條件 |
+| 層級 | 偵測依據 | 繞過難度 | 被繞過條件 |
 |---|---|---|---|
 | 工具簽章層 | 已知攻擊工具命令列特徵 | 最低 | 換工具、改名、LOTL |
 | API 原語層 | 協定/API 本質行為(4768/4769/4662/5136) | 中 | 低速、AES 降級規避 |
@@ -75,17 +75,17 @@ flowchart TD
 |---|---|---|---|---|---|
 | Stage 1 | T1087.002 低速 LDAP 偵察 | ✅ 驗證 | DirectorySearcher LOTL；門檻校準 >=3；AccessMask 0x10；CORP\\ filter 排除 labadmin FP | AD - Recon - Anomalous LDAP Object Enumeration<br>AD - Recon - Low-and-Slow LDAP Enumeration | 🆕 |
 | Stage 2 | T1558.004 AS-REP Roasting | ✅ 驗證 | 3 個 svc-legacy 帳號；EventData extract()；DC 回 AES256(0x12)；批次收割行為層(TargetedAccounts=3) | AD - KDC - AS-REP Roasting Pre-Auth Disabled<br>AD - KDC - AS-REP Roasting Bulk Harvesting | 🆕 全新技術 |
-| Stage 3 | T1558.003 Kerberoasting | ✅ 驗證 | AES hash 得手；ServiceName vs 4624 leftanti join(版本B)；RoastedNoLogon=6(含格式重複) | AD - KDC - Kerberoasting TGS Requests(沿用)<br>AD - KDC - Kerberoasting Multi-SPN Harvesting<br>AD - KDC - Kerberoast Ticket Without Logon | ♻️ 原語層沿用<br>⬆️🆕 升級+新增 |
-| Stage 4a | T1003.001/T1555 LSASS/DPAPI | 🔵 攔截 | comsvcs MiniDump 被 MDE HackTool:Win32/DumpLsass.H 攔截；EMPLOYEE01 和 DC01 均無法執行 | Endpoint - LSASS - Suspicious Process Access<br>Endpoint - LSASS - Credential Dump via comsvcs MiniDump<br>Endpoint - DPAPI - Masterkey File Access | 🆕(概念設計) |
-| Stage 4b | T1552.001 gMSA 密碼 Blob | ✅ 驗證 | netexec --gmsa Alice 非授權讀取被拒；DC01 產生 4662（Subject=alice，AccessMask=0x10，35筆）；Sentinel KQL 待最終確認 | AD - gMSA - Unauthorized ManagedPassword Attribute Access | 🆕 |
+| Stage 3 | T1558.003 Kerberoasting | ✅ 驗證 | AES hash 得手 | AD - KDC - Kerberoasting TGS Requests(沿用)<br>AD - KDC - Kerberoasting Multi-SPN Harvesting<br>AD - KDC - Kerberoast Ticket Without Logon | ♻️ 原語層沿用<br>⬆️🆕 升級+新增 |
+| Stage 4a | T1003.001/T1555 LSASS/DPAPI | 🔵 攔截 | comsvcs MiniDump 被 MDE  攔截；EMPLOYEE01 和 DC01 均無法執行 | Endpoint - LSASS - Suspicious Process Access<br>Endpoint - LSASS - Credential Dump via comsvcs MiniDump<br>Endpoint - DPAPI - Masterkey File Access | 🆕(概念設計) |
+| Stage 4b | T1552.001 gMSA 密碼 Blob | ✅ 驗證 | netexec --gmsa Alice 非授權讀取被拒；DC01 產生 4662；Sentinel KQL 待最終確認 | AD - gMSA - Unauthorized ManagedPassword Attribute Access | 🆕 |
 | Stage 5 | T1003.006 DCSync | ✅ 驗證 | svc_backup 執行；AccessMask 0x100 確認；行為層關聯 4769(SrcIp filter 收斂噪音) | AD - DomainObject - Directory Replication by Non-DC Account(沿用)<br>AD - DCSync Followed by Anomalous KRBTGT Activity | ♻️ 沿用原語層<br>🆕 行為層 |
-| Stage 6a | T1558.001 Golden Ticket | 🔵 環境限制 | Windows Server 2025 PAC 驗證；六種方式均被 KDC_ERR_TGT_REVOKED 拒絕；失敗不留標準 Security Event | AD - Kerberos - Golden Ticket TGS Without AS-REQ(概念)<br>AD - Kerberos - Anomalous Ticket Lifetime(概念)<br>AD - Kerberos - Golden Ticket Attempt Rejected(失敗偵測) | 🆕(概念+失敗偵測) |
-| Stage 6b | T1558.002 Silver Ticket | ✅ 驗證 | cifs/SRV-FILE；存取 C$/FinanceShare/HRShare；SRV-FILE 4624 有但 DC 4769 無 | AD - Kerberos - Silver Ticket Service Access Without DC Log | 🆕 全新技術 |
+| Stage 6a | T1558.001 Golden Ticket | 🔵 環境限制 | Windows Server 2025 PAC 驗證；六種方式均被拒絕；失敗不留標準 Security Event | AD - Kerberos - Golden Ticket TGS Without AS-REQ(概念)<br>AD - Kerberos - Anomalous Ticket Lifetime(概念)<br>AD - Kerberos - Golden Ticket Attempt Rejected(失敗偵測) | 🆕(概念+失敗偵測) |
+| Stage 6b | T1558.002 Silver Ticket | ✅ 驗證 | 存取 C$/:SRV-FILE 4624 有但 DC 4769 無 | AD - Kerberos - Silver Ticket Service Access Without DC Log | 🆕 全新技術 |
 | Stage 6c | T1558 Diamond/Sapphire | 🔵 環境限制 | Windows Server 2025 PAC 驗證同樣擋住 Diamond；PAC 內容合法極難偵測 | AD - Kerberos - PAC Privilege Anomaly(輔助偵測) | 🆕(概念設計) |
-| Stage 6d | T1550.003 Pass-the-Ticket | ⚠️ 部分 | Silver Ticket 存取 C$/FinanceShare/HRShare 成功；遠端執行(atexec/smbexec/psexec)受 cifs SPN 限制 | AD - Pass-the-Ticket - Anomalous Kerberos Logon<br>AD - Pass-the-Ticket - Forged TGT Lateral Movement Behavioral | 🆕 全新技術 |
+| Stage 6d | T1550.003 Pass-the-Ticket | ⚠️ 部分 | Silver Ticket 存取 C$ 成功；遠端執行(atexec/smbexec/psexec)受限制 | AD - Pass-the-Ticket - Anomalous Kerberos Logon<br>AD - Pass-the-Ticket - Forged TGT Lateral Movement Behavioral | 🆕 全新技術 |
 | Stage 7a | T1187/RBCD | ⚠️ 部分 | msDS-AllowedToActOnBehalfOfOtherIdentity 寫入成功；S4U2Self 被 Server 2025 Protocol Transition 限制；5136 DC 本機不產生 | AD - Delegation - RBCD Attribute Modification<br>AD - Coerced Authentication Anomaly | 🆕(寫入驗證，S4U概念) |
 | Stage 7b | T1187 Unconstrained Delegation | ✅ 驗證 | PetitPotam Attack worked!；Responder 捕獲 DC01$ NTLMv2 hash；MDE DeviceNetworkEvents dc01→10.0.4.4:445 Sentinel 通過；TGT 擷取標概念設計（MDE 限制） | AD - Coerced Authentication - DC Outbound SMB to Non-DC Host | 🆕 |
-| Stage 8 | T1484.001/T1222 ACL/GPO | ⚠️ 部分 | ACL 寫入成功，5136 Sentinel 通過（labadmin 本機）；GPO SYSVOL 寫入成功（ScheduledTasks.xml/scripts.ini/GPT.INI）；Windows 11 CSE 不觸發下游執行 | AD - ACL - GenericAll DACL Grant on Container<br>AD - GPO - Unauthorized Group Policy Modification<br>AD - GPO Abuse to Endpoint Execution | 🆕 |
+| Stage 8 | T1484.001/T1222 ACL/GPO | ⚠️ 部分 | ACL 寫入成功，5136 Sentinel 通過（labadmin 本機）；GPO SYSVOL 寫入成功；Windows 11 不觸發執行 | AD - ACL - GenericAll DACL Grant on Container<br>AD - GPO - Unauthorized Group Policy Modification<br>AD - GPO Abuse to Endpoint Execution | 🆕 |
 
 ---
 
@@ -138,7 +138,7 @@ flowchart TD
 ## 未覆蓋 / 部分覆蓋階段
 
 **Stage 4a：LSASS/DPAPI — 🔵 MDE 攔截**
-comsvcs MiniDump 被 MDE（HackTool:Win32/DumpLsass.H）在 rundll32 層級阻止，EMPLOYEE01 和 DC01 均無法執行。MDE 的攔截本身是工具簽章層防禦有效的展示，與 Stage 1 LOTL 讓工具簽章層失效形成對比。Stage 4b（gMSA）為替代路徑。
+comsvcs MiniDump 被 MDE 在 rundll32 層級阻止，EMPLOYEE01 和 DC01 均無法執行。MDE 的攔截本身是工具簽章層防禦有效的展示，與 Stage 1 LOTL 讓工具簽章層失效形成對比。Stage 4b（gMSA）為替代路徑。
 
 **Stage 6a Golden Ticket — 🔵 Server 2025 環境限制**
 Windows Server 2025 開啟多層 Kerberos PAC 驗證，impacket v0.14.0 的六種方式（NTLM hash / AES256 / Diamond -request / Diamond -extra-pac / RID 500指定 / KdcPacRequestorEnforcement=0）均被 KDC_ERR_TGT_REVOKED 拒絕。失敗不留標準 Security Event 4768（DC 在協定層拒絕，不寫 Event Log）。Silver Ticket 仍有效，證明服務主機保護弱於 DC。
@@ -153,7 +153,7 @@ RBCD 屬性寫入成功，但 S4U2Self 被 Server 2025 的 Protocol Transition �
 EMPLOYEE01 已設 TrustedForDelegation，強制驗證（PetitPotam）待執行。TGT 擷取需要 Rubeus/Mimikatz，但 MDE 會攔截，需 Exclusion Path 或其他繞過方式。
 
 **Stage 4b：gMSA 密碼 Blob — ✅ 執行完成**
-netexec --gmsa 以 Alice 非授權讀取 svc-gmsa-lab 的 msDS-ManagedPassword，DC 拒絕（no read permissions），4662 在 DC01 本機產生 35 筆，Subject=alice，AccessMask=0x10。Sentinel KQL 驗證為最後一步（對話結束前未完成查詢）。
+netexec --gmsa 以 Alice 非授權讀取 svc-gmsa-lab 的 msDS-ManagedPassword，DC 拒絕（no read permissions），4662 在 DC01 本機產生 35 筆，Subject=alice，AccessMask=0x10。Sentinel KQL 驗證為最後一步。
 
 **Stage 7b：Unconstrained Delegation — ✅ 執行完成**
 PetitPotam 強制 DC01 對 Kali（10.0.5.4）做 NTLM 認證，Responder 捕獲 DC01$ NTLMv2 hash，Attack worked! 確認。MDE DeviceNetworkEvents 偵測到 dc01.corp.lab→10.0.4.4:445，Sentinel 驗證通過。TGT 擷取需 Rubeus/Mimikatz，因 MDE 限制標概念設計。
@@ -161,7 +161,7 @@ PetitPotam 強制 DC01 對 Kali（10.0.5.4）做 NTLM 認證，Responder 捕獲 
 **Stage 8：ACL/GPO — ⚠️ 部分完成**
 ACL 寫入：DC01 本機 PowerShell Set-Acl 觸發 5136，Sentinel 通過；impacket-dacledit 遠端寫入 SubjectUser 顯示 labadmin 非 Alice。
 GPO 寫入：SYSVOL 所有檔案上傳成功（ScheduledTasks.xml、test.bat、scripts.ini、GPT.INI）。
-下游執行：Windows 11 CSE 在手動寫 SYSVOL 時不觸發 Immediate Task 和 Startup Script，即使 GPT.INI 正確加入 CSE GUID、重開機後仍未執行。標記環境限制。
+下游執行：Windows 11 手動寫 SYSVOL 時不觸發 Immediate Task 和 Startup Script，即使 GPT.INI 正確加入 CSE GUID、重開機後仍未執行。標記環境限制。
 
 ---
 
