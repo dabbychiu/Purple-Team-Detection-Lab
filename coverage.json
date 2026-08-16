@@ -67,34 +67,16 @@
       }
     ]
   },
-  "T1003.006": {
-    "sentinel": [
-      {
-        "name": "AD - DomainObject - Directory Replication by Non-DC Account",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20DomainObject%20-%20Directory%20Replication%20by%20Non-DC%20Account%20%28T1003.006%29.kql",
-        "tactic": "credential-access"
-      }
-    ]
-  },
-  "T1558.003": {
-    "sentinel": [
-      {
-        "name": "AD - KDC - Kerberoasting TGS Requests",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20Kerberoasting%20TGS%20Requests%20%28T1558.003%29.kql",
-        "tactic": "credential-access"
-      },
-      {
-        "name": "AD - KDC - RC4 Encrypted TGS Request Detected",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20RC4%20Encrypted%20TGS%20Request%20Detected%20%28T1558.003%29.kql",
-        "tactic": "credential-access"
-      }
-    ]
-  },
   "T1552.001": {
     "sentinel": [
       {
         "name": "IIS - w3wp - Credential Scanning via findstr",
         "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/IIS%20-%20w3wp%20-%20Credential%20Scanning%20via%20findstr%20%28T1552.001%29.kql",
+        "tactic": "credential-access"
+      },
+      {
+        "name": "AD - gMSA - Unauthorized ManagedPassword Attribute Access",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20gMSA%20-%20Unauthorized%20ManagedPassword%20Attribute%20Access%20%28T1552.001%29.kql",
         "tactic": "credential-access"
       }
     ]
@@ -109,6 +91,16 @@
       {
         "name": "AD - SharpHound - Enumeration Tool Execution",
         "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/AD%20-%20SharpHound%20-%20Enumeration%20Tool%20Execution%20%28T1087.002%29.kql",
+        "tactic": "discovery"
+      },
+      {
+        "name": "AD - Recon - Anomalous LDAP Object Enumeration",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/AD%20-%20Recon%20-%20Anomalous%20LDAP%20Object%20Enumeration%20%28T1087.002%29.kql",
+        "tactic": "discovery"
+      },
+      {
+        "name": "AD - Recon - Low-and-Slow LDAP Enumeration",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/AD%20-%20Recon%20-%20Low-and-Slow%20LDAP%20Enumeration%20%28T1087.002%29.kql",
         "tactic": "discovery"
       }
     ]
@@ -164,6 +156,174 @@
         "name": "AD - DomainObject - WRITE_DAC Permission Modification",
         "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0112-Defense-Impairment/AD%20-%20DomainObject%20-%20WRITE_DAC%20Permission%20Modification%20%28T1222%29.kql",
         "tactic": "defense-impairment"
+      },
+      {
+        "name": "AD - ACL - GenericAll DACL Grant on Container",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0112-Defense-Impairment/AD%20-%20ACL%20-%20GenericAll%20DACL%20Grant%20on%20Container%20%28T1222%29.kql",
+        "tactic": "defense-impairment"
+      }
+    ]
+  },
+  "T1021.002": {
+    "sentinel": [
+      {
+        "name": "AD - SMB - Lateral Movement to File Server via Admin Share",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0008-Lateral-Movement/AD%20-%20SMB%20-%20Lateral%20Movement%20to%20File%20Server%20via%20Admin%20Share.kql",
+        "tactic": "lateral-movement"
+      }
+    ]
+  },
+  "T1003.006": {
+    "sentinel": [
+      {
+        "name": "AD - DomainObject - Directory Replication by Non-DC Account",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20DomainObject%20-%20Directory%20Replication%20by%20Non-DC%20Account%20%28T1003.006%29.kql",
+        "tactic": "credential-access"
+      },
+      {
+        "name": "AD - DCSync Followed by Anomalous KRBTGT Activity",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20DCSync%20Followed%20by%20Anomalous%20KRBTGT%20Activity%20%28T1003.006%29.kql",
+        "tactic": "credential-access"
+      }
+    ]
+  },
+  "T1003.001": {
+    "sentinel": [
+      {
+        "name": "Endpoint - LSASS - Suspicious Process Access",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/Endpoint%20-%20LSASS%20-%20Suspicious%20Process%20Access%20%28T1003.001%29.kql",
+        "tactic": "credential-access"
+      },
+      {
+        "name": "Endpoint - LSASS - Credential Dump via comsvcs MiniDump",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/Endpoint%20-%20LSASS%20-%20Credential%20Dump%20via%20comsvcs%20MiniDump%20%28T1003.001%29.kql",
+        "tactic": "credential-access"
+      }
+    ]
+  },
+  "T1555": {
+    "sentinel": [
+      {
+        "name": "Endpoint - DPAPI - Masterkey File Access",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/Endpoint%20-%20DPAPI%20-%20Masterkey%20File%20Access%20%28T1555%29.kql",
+        "tactic": "credential-access"
+      }
+    ]
+  },
+  "T1558.001": {
+    "sentinel": [
+      {
+        "name": "AD - Kerberos - Golden Ticket TGS Without AS-REQ",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20Kerberos%20-%20Golden%20Ticket%20TGS%20Without%20AS-REQ%20%28T1558.001%29.kql",
+        "tactic": "credential-access"
+      },
+      {
+        "name": "AD - Kerberos - Anomalous Ticket Lifetime",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20Kerberos%20-%20Anomalous%20Ticket%20Lifetime%20%28T1558.001%29.kql",
+        "tactic": "credential-access"
+      },
+      {
+        "name": "AD - Kerberos - Golden Ticket Attempt Rejected",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20Kerberos%20-%20Golden%20Ticket%20Attempt%20Rejected%20%28T1558.001%29.kql",
+        "tactic": "credential-access"
+      }
+    ]
+  },
+  "T1558.002": {
+    "sentinel": [
+      {
+        "name": "AD - Kerberos - Silver Ticket Service Access Without DC Log",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20Kerberos%20-%20Silver%20Ticket%20Service%20Access%20Without%20DC%20Log%20%28T1558.002%29.kql",
+        "tactic": "credential-access"
+      }
+    ]
+  },
+  "T1558.003": {
+    "sentinel": [
+      {
+        "name": "AD - KDC - Kerberoasting TGS Requests",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20Kerberoasting%20TGS%20Requests%20%28T1558.003%29.kql",
+        "tactic": "credential-access"
+      },
+      {
+        "name": "AD - KDC - RC4 Encrypted TGS Request Detected",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20RC4%20Encrypted%20TGS%20Request%20Detected%20%28T1558.003%29.kql",
+        "tactic": "credential-access"
+      },
+      {
+        "name": "AD - KDC - Kerberoasting Multi-SPN Harvesting",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20Kerberoasting%20Multi-SPN%20Harvesting%20%28T1558.003%29.kql",
+        "tactic": "credential-access"
+      },
+      {
+        "name": "AD - KDC - Kerberoast Ticket Without Logon",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20Kerberoast%20Ticket%20Without%20Logon%20%28T1558.003%29.kql",
+        "tactic": "credential-access"
+      },
+      {
+        "name": "AD - Delegation - RBCD Attribute Modification",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0008-Lateral-Movement/AD%20-%20Delegation%20-%20RBCD%20Attribute%20Modification%20%28T1558.003%29.kql",
+        "tactic": "lateral-movement"
+      }
+    ]
+  },
+  "T1558.004": {
+    "sentinel": [
+      {
+        "name": "AD - KDC - AS-REP Roasting Pre-Auth Disabled",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20AS-REP%20Roasting%20Pre-Auth%20Disabled%20%28T1558.004%29.kql",
+        "tactic": "credential-access"
+      },
+      {
+        "name": "AD - KDC - AS-REP Roasting Bulk Harvesting",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20AS-REP%20Roasting%20Bulk%20Harvesting%20%28T1558.004%29.kql",
+        "tactic": "credential-access"
+      }
+    ]
+  },
+  "T1558": {
+    "sentinel": [
+      {
+        "name": "AD - Kerberos - PAC Privilege Anomaly (Diamond/Sapphire)",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20Kerberos%20-%20PAC%20Privilege%20Anomaly%20Diamond%20Sapphire%20%28T1558%29.kql",
+        "tactic": "credential-access"
+      }
+    ]
+  },
+  "T1550.003": {
+    "sentinel": [
+      {
+        "name": "AD - Pass-the-Ticket - Anomalous Kerberos Logon",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0008-Lateral-Movement/AD%20-%20Pass-the-Ticket%20-%20Anomalous%20Kerberos%20Logon%20%28T1550.003%29.kql",
+        "tactic": "lateral-movement"
+      },
+      {
+        "name": "AD - Pass-the-Ticket - Forged TGT Lateral Movement Behavioral",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0008-Lateral-Movement/AD%20-%20Pass-the-Ticket%20-%20Forged%20TGT%20Lateral%20Movement%20Behavioral%20%28T1550.003%29.kql",
+        "tactic": "lateral-movement"
+      }
+    ]
+  },
+  "T1187": {
+    "sentinel": [
+      {
+        "name": "AD - Coerced Authentication - DC Outbound SMB",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0008-Lateral-Movement/AD%20-%20Coerced%20Authentication%20-%20DC%20Outbound%20SMB%20%28T1187%29.kql",
+        "tactic": "lateral-movement"
+      }
+    ]
+  },
+  "T1484.001": {
+    "sentinel": [
+      {
+        "name": "AD - GPO - Unauthorized Group Policy Modification",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0003-Persistence/AD%20-%20GPO%20-%20Unauthorized%20Group%20Policy%20Modification%20%28T1484.001%29.kql",
+        "tactic": "persistence"
+      },
+      {
+        "name": "AD - GPO Abuse to Endpoint Execution",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0003-Persistence/AD%20-%20GPO%20Abuse%20to%20Endpoint%20Execution%20%28T1484.001%29.kql",
+        "tactic": "persistence"
       }
     ]
   },
@@ -193,14 +353,5 @@
   },
   "T1052": {
     "detectable": false
-  },
-  "T1021.002": {
-    "sentinel": [
-      {
-        "name": "AD - SMB - Lateral Movement to File Server via Admin Share",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0008-Lateral-Movement/AD%20-%20SMB%20-%20Lateral%20Movement%20to%20File%20Server%20via%20Admin%20Share.kql",
-        "tactic": "lateral-movement"
-      }
-    ]
   }
 }
