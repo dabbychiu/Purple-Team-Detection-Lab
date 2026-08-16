@@ -1,0 +1,28 @@
+//============================================================================
+//Rule : AD - Recon - Low-and-Slow LDAP Enumeration (Behavioral Layer)
+//MITRE : T1087.002 (Account Discovery: Domain Account)
+//Data Source : SecurityEvent , EventID : 4662
+//Prerequisite : 同上；此規則設計為較長排程（如每 6-12 小時）執行
+//Type : 偵測單帳號在延展時間窗（數小時）內持續、規律地存取目錄物件——低速偵察特徵
+//Severity : MEDIUM - 慢速偵察，以時間持續性而非瞬時量為判準
+//Known FP : 排程型 AD 管理腳本、監控代理程式（應以帳號白名單排除服務帳號）
+//Tuning : 調整 window 與 active-bin 門檻；規律的固定間隔（低變異）較隨機人為操作更可疑
+//         正常使用者 LDAP 查詢為零星、不規律；持續 2 小時以上指向自動化偵察
+//Note : 本 lab 以 while 迴圈壓縮「低速偵察」模式；概念驗證規模 30 分鐘，
+//       門檻 SpanMin>=25 與 ActiveBins>=4；加入 CORP\\ filter 排除 labadmin 本機帳號 FP
+//============================================================================
+SecurityEvent
+| where EventID == 4662
+| where ObjectServer == "DS"
+| where AccessMask == "0x10"
+| where SubjectUserName !endswith "$"
+| where SubjectUserName != "-"
+| where SubjectAccount startswith "CORP\\"
+| summarize
+    ActiveBins = dcount(bin(TimeGenerated, 15m)),
+    SpanMin = datetime_diff("minute", max(TimeGenerated), min(TimeGenerated)),
+    EventCount = count()
+    by SubjectAccount, Computer
+| where SpanMin >= 25 and ActiveBins >= 4
+| project SubjectAccount, Computer, ActiveBins, SpanMin, EventCount
+| order by SpanMin desc
