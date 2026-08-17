@@ -284,7 +284,7 @@
   "T1558": {
     "sentinel": [
       {
-        "name": "AD - Kerberos - PAC Privilege Anomaly (Diamond/Sapphire)",
+        "name": "AD - Kerberos - PAC Privilege Anomaly Diamond Sapphire",
         "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20Kerberos%20-%20PAC%20Privilege%20Anomaly%20Diamond%20Sapphire%20%28T1558%29.kql",
         "tactic": "credential-access"
       }
