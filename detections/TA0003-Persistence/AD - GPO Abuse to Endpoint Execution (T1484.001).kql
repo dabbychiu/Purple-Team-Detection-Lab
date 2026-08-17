@@ -11,15 +11,20 @@
 //       impacket 遠端寫入 SYSVOL 不觸發 5136，GPO 下游執行無遙測；規則標概念設計
 //       下游執行不觸發根本原因：Windows 11 對手動 SYSVOL 寫入的 CSE 觸發條件嚴格，
 //       需透過正式 GPO API（New-GPO）才能正確設定 CSE GUID 和觸發下游執行
+//Fix : [v2] 修正 join key 邏輯錯誤：原版 on $left.GPOTime == $right.ExecTime 要求
+//       兩個不同事件的 TimeGenerated 完全相等，幾乎永遠不會 match（join 邏輯上已死）；
+//       改為 on $left.Computer == $right.DeviceName（主機名）做 join key，
+//       再以 where ExecTime between (...) 做時間窗關聯，才是正確的 cross-source join 模式
 //============================================================================
 let GPOChanges = SecurityEvent
-    | where EventID == 5136
-    | extend ObjectClass = extract(@'<Data Name="ObjectClass">([^<]+)</Data>', 1, tostring(EventData))
-    | extend SubjectUser = extract(@'<Data Name="SubjectUserName">([^<]+)</Data>', 1, tostring(EventData))
+    | where EventID in (5136, 5137)
+    | extend ObjectClass  = extract(@'<Data[^>]*Name="ObjectClass"[^>]*>([^<]+)</Data>', 1, EventData)
+    | extend SubjectUser  = extract(@'<Data[^>]*Name="SubjectUserName"[^>]*>([^<]+)</Data>', 1, EventData)
+    | extend ObjectDN     = extract(@'<Data[^>]*Name="ObjectDN"[^>]*>([^<]+)</Data>', 1, EventData)
     | where ObjectClass == "groupPolicyContainer"
     | where SubjectUser !endswith "$"
     | where TimeGenerated > ago(6h)
-    | project GPOTime=TimeGenerated, Modifier=SubjectUser;
+    | project GPOTime=TimeGenerated, Modifier=SubjectUser, ObjectDN, Computer;
 GPOChanges
 | join kind=inner (
     DeviceProcessEvents
@@ -27,7 +32,7 @@ GPOChanges
     | where ProcessCommandLine has_any ("startup", "scheduledtask", "test.bat", "gpo")
     | where TimeGenerated > ago(6h)
     | project ExecTime=Timestamp, DeviceName, ProcessCommandLine
-) on $left.GPOTime == $right.ExecTime
+) on $left.Computer == $right.DeviceName          // [Fix] 以主機名做 join key，而非時間相等
 | where ExecTime between (GPOTime .. (GPOTime + 6h))
-| project GPOTime, Modifier, ExecTime, DeviceName, ProcessCommandLine
+| project GPOTime, Modifier, ObjectDN, ExecTime, DeviceName, ProcessCommandLine
 | order by GPOTime desc
