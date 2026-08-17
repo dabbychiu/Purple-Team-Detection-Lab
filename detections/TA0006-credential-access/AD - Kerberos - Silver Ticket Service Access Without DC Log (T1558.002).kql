@@ -10,11 +10,16 @@
 //Note : 本 lab 以 cifs/SRV-FILE.corp.lab Silver Ticket 存取 C$/FinanceShare/HRShare，
 //       SRV-FILE 4624（LogonType=3，Kerberos，SrcIp=10.0.5.4）有，DC 4769 無；
 //       SRV-FILE AMA 於執行期間安裝後偵測訊號已驗證
+//Fix : [v2] DC 那側的 DCTickets let 區塊加入 TimeGenerated > ago(3h) 時間範圍限定；
+//       原版 DCTickets 沒有時間過濾，會掃全表歷史資料；
+//       leftanti 比對時若 DC 在數天前有過相同帳號的 4769，會誤判「DC 無紀錄」——
+//       兩側時間窗應一致，才能正確表達「在同一時段內 DC 沒有對應的 TGS 發放」
 //============================================================================
 let DCTickets = SecurityEvent
     | where Computer has "DC01" and EventID == 4769
-    | extend TargetUser = extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData))
-    | extend ServiceName = extract(@'<Data Name="ServiceName">([^<]+)</Data>', 1, tostring(EventData))
+    | where TimeGenerated > ago(3h)                  // [Fix] 加入時間窗，與 SRV-FILE 側一致
+    | extend TargetUser  = extract(@'<Data[^>]*Name="TargetUserName"[^>]*>([^<]+)</Data>', 1, EventData)
+    | extend ServiceName = extract(@'<Data[^>]*Name="ServiceName"[^>]*>([^<]+)</Data>', 1, EventData)
     | project TgsTime=TimeGenerated, TargetUser, ServiceName;
 SecurityEvent
 | where Computer has "SRV-FILE" and EventID == 4624

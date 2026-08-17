@@ -7,16 +7,41 @@
 //Severity : HIGH - 超長 lifetime 為票證鍛造常見特徵
 //Known FP : 特殊服務票政策；應對照網域 Kerberos 原則基線
 //Tuning : 依網域 MaxTicketAge 原則調整門檻（預設 10 小時）
-//Note : 概念設計；StartTime/EndTime 欄位在本環境 DCR 未原生解析
+//Note : 概念設計；標準 Windows Security Event 4769 的 EventData 不含 StartTime/EndTime 欄位，
+//       這兩個欄位存在於 Kerberos ETW trace 或 MDE IdentityLogonEvents，不在 SecurityEvent。
+//       在標準 Sentinel SecurityEvent 表上此規則永遠不會有輸出。
+//Fix : [v2] 保留原始邏輯架構，但補充 Note 說明資料來源問題：
+//       原版以 extract() 從 4769 EventData 取 StartTime/EndTime，但 4769 XML schema 不含這兩欄；
+//       修正為使用 MDE IdentityLogonEvents（如已啟用 Defender for Identity connector），
+//       或標記為「需額外 ETW 來源」的概念設計規則；
+//       以下提供兩個版本：Version A（原 SecurityEvent 概念版）、Version B（MDE IdentityLogonEvents 實用版）
+//
+// === Version A：SecurityEvent 概念版（僅供文件參考，實際不產生輸出）===
+// SecurityEvent
+// | where EventID == 4769
+// | extend StartTime = extract(@'<Data Name="StartTime">([^<]+)</Data>', 1, EventData)
+// | extend EndTime   = extract(@'<Data Name="EndTime">([^<]+)</Data>', 1, EventData)
+// | extend TicketLife = todatetime(EndTime) - todatetime(StartTime)
+// | where isnotempty(StartTime) and isnotempty(EndTime)  // 在標準環境永遠為 false
+// | where TicketLife > 10h
+// | ...
+//
+// === Version B：MDE IdentityLogonEvents 實用版（需 Defender for Identity connector）===
 //============================================================================
-SecurityEvent
-| where EventID == 4769
-| extend StartTime = extract(@'<Data Name="StartTime">([^<]+)</Data>', 1, tostring(EventData))
-| extend EndTime = extract(@'<Data Name="EndTime">([^<]+)</Data>', 1, tostring(EventData))
-| extend TicketLife = todatetime(EndTime) - todatetime(StartTime)
-| where isnotempty(StartTime) and isnotempty(EndTime)
-| where TicketLife > 10h
-| extend TargetUser = extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData))
-| extend ServiceName = extract(@'<Data Name="ServiceName">([^<]+)</Data>', 1, tostring(EventData))
-| project TimeGenerated, TargetUser, ServiceName, TicketLife, Computer
+IdentityLogonEvents                               // [Fix] 改用正確資料來源
+| where Protocol == "Kerberos"
+| where ActionType == "LogonSuccess"
+| extend TicketValidFrom = AdditionalFields.TicketValidFrom
+| extend TicketValidTo   = AdditionalFields.TicketValidTo
+| where isnotempty(TicketValidFrom) and isnotempty(TicketValidTo)
+| extend TicketLife = todatetime(tostring(TicketValidTo)) - todatetime(tostring(TicketValidFrom))
+| where TicketLife > 10h                          // 超過網域預設 MaxTicketAge = 10h
+| project
+    Timestamp,
+    AccountUpn,
+    DeviceName,
+    IPAddress,
+    TicketLife,
+    TicketValidFrom,
+    TicketValidTo
 | order by TicketLife desc
