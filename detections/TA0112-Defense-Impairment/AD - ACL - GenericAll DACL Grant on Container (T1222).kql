@@ -5,11 +5,17 @@
 //Prerequisite : DC 啟用 "Audit Directory Service Changes (Success)"，並對 OU/容器物件設 SACL
 //Type : 偵測對 OU/容器/GPO 物件的安全性描述元（nTSecurityDescriptor）變更——GenericAll 持久化
 //Severity : HIGH - 對容器物件授予過度權限是隱蔽持久化與提權前置
-//Known FP : 合法權限委派；應由已授權管理帳號執行（可白名單）
-//Tuning : 聚焦 OU/GPO/container 類別；非授權帳號變更即升級
-//Note : 本 lab 中 labadmin 在 DC01 本機執行 Set-Acl 觸發 5136（Sentinel 已驗證），
-//       impacket-dacledit 遠端寫入不觸發 5136（LDAP channel 問題）；
-//       DC 本機操作的 ObjectDN 為 DC=corp,DC=lab（網域根），非 OU=Employees
+//Known FP : 合法權限委派（應由已授權管理帳號執行）；自動化腳本批次設定 OU 權限
+//Tuning : 白名單排除授權 AD 管理員帳號；任何非白名單帳號修改即高可信告警
+//         ObjectClass 限定高價值容器：OU、GPO、網域根——單一物件 ACL 修改不在此範圍
+//Alert Rule : 建議排程 15 分鐘，ACL 修改屬低頻高危行為，發生即需關注
+//Note : 本 lab 中 labadmin 在 DC01 本機執行 Set-Acl 觸發 5136（Sentinel 已驗證）
+//       impacket-dacledit 遠端寫入不觸發 5136（LDAP channel 問題，與 RBCD 規則相同）
+//       ObjectClass 限定 organizationalUnit/groupPolicyContainer/domainDNS：
+//       - OU：ACL 有繼承效果，對 OU 設 GenericAll 可控制 OU 內所有物件
+//       - groupPolicyContainer：GPO 物件，ACL 修改可影響大量端點
+//       - domainDNS：網域根物件，最高價值的 ACL 攻擊目標
+//       攻擊者對單一使用者/電腦物件設 ACL 此規則不涵蓋（攻擊價值較低）
 //============================================================================
 SecurityEvent
 | where EventID == 5136
@@ -18,6 +24,7 @@ SecurityEvent
 | extend ObjectDN = extract(@'<Data Name="ObjectDN">([^<]+)</Data>', 1, tostring(EventData))
 | extend ObjectClass = extract(@'<Data Name="ObjectClass">([^<]+)</Data>', 1, tostring(EventData))
 | where AttrName == "nTSecurityDescriptor"
+| where ObjectClass in ("organizationalUnit", "groupPolicyContainer", "domainDNS")
 | where SubjectUser !endswith "$"
 | project TimeGenerated, SubjectUser, AttrName, ObjectDN, ObjectClass, Computer
 | order by TimeGenerated desc
