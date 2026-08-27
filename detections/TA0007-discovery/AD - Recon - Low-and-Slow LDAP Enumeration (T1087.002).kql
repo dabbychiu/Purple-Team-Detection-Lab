@@ -3,15 +3,23 @@
 //MITRE : T1087.002 (Account Discovery: Domain Account)
 //Data Source : SecurityEvent , EventID : 4662
 //Prerequisite : DC 啟用 "Audit Directory Service Access (Success)"，並於網域根物件設定讀取 SACL
-//Type : 偵測單帳號在延展時間窗（數小時）內持續、規律地存取目錄物件——低速偵察特徵
+//Type : 偵測單帳號在延展時間窗內持續、規律地存取目錄物件——低速偵察特徵
 //Severity : MEDIUM - 慢速偵察，以時間持續性而非瞬時量為判準
-//Known FP : 排程型 AD 管理腳本、監控代理程式（應以帳號白名單排除服務帳號）
-//Tuning : 調整 window 與 active-bin 門檻；規律的固定間隔（低變異）較隨機人為操作更可疑
-//         正常使用者 LDAP 查詢為零星、不規律；持續 2 小時以上指向自動化偵察
-//Note : 本 lab 以 while 迴圈壓縮「低速偵察」模式；概念驗證規模 30 分鐘，
+//Known FP : Azure AD Connect 同步帳號（每 30 分鐘全量同步，必定命中）
+//           排程型 AD 管理腳本、監控代理程式服務帳號（SCOM/Zabbix 等）
+//           IT 管理員零星 AD 查詢跨越 25 分鐘
+//Tuning : 部署前必須建立白名單排除以下帳號類型：
+//           - Azure AD Connect 同步帳號（帳號名稱視環境而定，需手動確認）
+//           - 監控代理服務帳號（不以 $ 結尾，需逐一識別）
+//           門檻 SpanMin >= 25 為 lab 概念驗證值（30 分鐘壓縮模式）
+//           真實環境建議以基線為主調整，參考值 SpanMin >= 60 或 >= 90
+//           ActiveBins >= 4 同樣建議以環境基線校準後決定
+//Alert Rule : 建議排程 >= 3h，與 bin(TimeGenerated, 3h) 對齊
+//             避免同一 3h 窗內重複觸發（15 分鐘排程會在同一窗產生最多 12 次告警）
+//Note : 本 lab 以 while 迴圈壓縮「低速偵察」模式；概念驗證規模 30 分鐘
 //       門檻 SpanMin>=25 與 ActiveBins>=4；加入 CORP\\ filter 排除 labadmin 本機帳號 FP
-//Fix : [v2] 加入 TimeGenerated > ago(3h) 時間範圍限定（原版無時間窗會掃全表歷史資料），
-//       並以 bin(TimeGenerated, 3h) 做滾動窗分組，避免 Analytics Rule 排程跑全表累積誤判
+//Fix : [v2] 加入 TimeGenerated > ago(3h) 時間範圍限定（原版無時間窗會掃全表歷史資料）
+//           並以 bin(TimeGenerated, 3h) 做滾動窗分組，避免 Analytics Rule 排程跑全表累積誤判
 //============================================================================
 SecurityEvent
 | where TimeGenerated > ago(3h)
