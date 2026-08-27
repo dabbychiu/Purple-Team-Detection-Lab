@@ -1,27 +1,39 @@
 //============================================================================
-//Rule : AD - Coerced Authentication - DC Outbound SMB to Non-DC Host
-//MITRE : T1187 (Forced Authentication)
-//Data Source : DeviceNetworkEvents (MDE)
-//Prerequisite : DC01 已 MDE onboard，DeviceNetworkEvents connector 啟用
-//Type : 偵測 DC 對非 DC 網段發起 SMB 連線——PetitPotam/PrinterBug 強制驗證的網路指紋
-//Severity : CRITICAL - DC 不應主動對工作站發起 SMB 連線
-//Known FP : DFS 複寫、備份軟體、監控代理——均為已知固定目標，可白名單排除
-//Tuning : 部署前確認環境內 DC 對外 SMB 的合法目標，加入白名單排除：
-//         - DFS namespace 伺服器 IP/網段
-//         - 備份伺服器 IP/網段
-//         - 監控代理推送目標 IP/網段
-//         白名單以外的任何 DC 對外 SMB 即高可信告警
-//Alert Rule : 建議排程 5-15 分鐘，DC 對外 SMB 屬高危行為，發生即需即時告警
-//Note : 本 lab 中 PetitPotam（EfsRpcEncryptFileSrv，EfsRpcOpenFileRaw 已修補）強制 DC01
-//       對 Kali（10.0.5.4）做 NTLM 認證，Responder 捕獲 DC01$ NTLMv2 hash
-//       MDE DeviceNetworkEvents 偵測到 dc01.corp.lab → 10.0.4.4:445；偵測訊號已驗證
+//Rule : AD - Delegation - RBCD Attribute Modification
+//MITRE : T1558.003 (Steal or Forge Kerberos Tickets: Kerberoasting)
+//        ※ 此技術實為委派濫用前置動作，部分框架亦歸類於 T1484（Domain Policy Modification）
+//Data Source : DeviceProcessEvents (MDE)
+//Prerequisite : EMPLOYEE01 / 攻擊者落腳點已 MDE onboard
+//Type : 偵測對 msDS-AllowedToActOnBehalfOfOtherIdentity 屬性的寫入——RBCD 攻擊的核心指紋
+//Severity : HIGH - 一般使用者/低權限帳號不應修改 AD 委派屬性
+//Known FP : AD 管理員透過 PowerShell 合法設定委派（Set-ADComputer）、IDM 系統
+//Tuning : 加入已知合法管理帳號排除；限縮 InitiatingProcessAccountName 非 DA 帳號告警
+//Note : 本 lab 中 5136 稽核事件在 impacket LDAP channel 下不產生（Server 2025 環境限制）
+//       改以 DeviceProcessEvents 偵測工具層命令列特徵作為替代偵測面
+//       此規則為工具簽章層，偵測 impacket rbcd.py / PowerView Set-DomainRBCD 等工具行為
+//       若攻擊者改用自訂 LDAP client 靜默寫入，此規則無法命中——應搭配 5136 稽核（原語層）
 //============================================================================
-DeviceNetworkEvents
-| where DeviceName has "DC01"
-| where RemotePort == 445
-| where RemoteIP !startswith "10.0.3."
-| where RemoteIP !startswith "::1"
-// 部署時依環境新增白名單：
-// | where RemoteIP !startswith "10.0.X."  // DFS/備份/監控伺服器網段
-| project Timestamp, DeviceName, RemoteIP, RemotePort
-| order by Timestamp desc
+DeviceProcessEvents
+| where TimeGenerated > ago(1d)
+// impacket rbcd.py 特徵
+| where (
+    ProcessCommandLine has_all ("rbcd", "msDS-AllowedToActOnBehalfOfOtherIdentity")
+    or ProcessCommandLine has_all ("rbcd.py", "-action write")
+    // PowerView / PowerSploit
+    or ProcessCommandLine has_all ("Set-DomainRBCD", "-Identity")
+    or ProcessCommandLine has_all ("Set-ADComputer", "msDS-AllowedToActOnBehalfOfOtherIdentity")
+    // 通用 ldap modify 寫入委派屬性
+    or ProcessCommandLine has "msDS-AllowedToActOnBehalfOfOtherIdentity"
+)
+// 排除已知合法 AD 管理操作（部署時依環境填入）
+// | where InitiatingProcessAccountName !in ("da_admin", "svc_idm")
+| project
+    TimeGenerated,
+    DeviceName,
+    InitiatingProcessAccountName,
+    InitiatingProcessAccountDomain,
+    FileName,
+    ProcessCommandLine,
+    InitiatingProcessFileName,
+    InitiatingProcessCommandLine
+| order by TimeGenerated desc
