@@ -67,7 +67,7 @@ DC01 的 4768 事件顯示 `TicketEncryptionType = 0x12`，不是 0x17。
 impacket 預設嘗試 RC4 請求，DC 直接回應 `KDC_ERR_ETYPE_NOSUPP`——DC 根本拒絕 RC4 請求。改用 `-k -no-pass`（先取 AES TGT 再索票）才成功，取得的 hash 格式是 `$krb5tgs$18$`（AES256），不是 `$krb5tgs$23$`（RC4）。
 
 **結論**
-你的 Chain 1 RC4 規則（`TicketEncryptionType == "0x17"`）在這個環境**永遠不會觸發**——不是規則寫錯，是環境的 Server 2025 AES 強制政策讓 RC4 根本不存在。這個規則在這個環境是一條空規則。
+Chain 1 RC4 規則（`TicketEncryptionType == "0x17"`）在這個環境**永遠不會觸發**——不是規則寫錯，是環境的 Server 2025 AES 強制政策讓 RC4 根本不存在。這個規則在這個環境是一條空規則。
 
 **校準**
 - Stage 2 AS-REP 規則：移除 `TicketEncryptionType` 限定，只靠 `PreAuthType == "0"` 作為核心指紋（因為 AS-REP Roasting 的本質是無預先驗證，加密類型是次要的）
@@ -187,7 +187,7 @@ Chain 3 遇到了四個「攻擊被環境擋住」的斷點，但這些斷點本
 | Diamond Ticket | AS-REQ 帳號 ≠ TGS 帳號（同來源 IP） | 高 | 🔵 同 Golden，被擋 |
 | Sapphire Ticket | S4U Transited Services 非空 + 高權帳號 | 最高 | 🔵 同上 |
 
-**核心洞察**：票證「真實性」越高，偵測越難。Golden Ticket 完全偽造，因果落差最明顯；Sapphire Ticket 連 PAC 都是真實的，標準日誌幾乎看不到指紋。在你的 Server 2025 環境，這四種票都被擋——防禦做到了「攻擊無法成功」，但同時也讓「攻擊嘗試本身」的訊號消失（不留 Security Event）。這個「防禦有效但偵測訊號也消失」的矛盾，是現代 AD 加固的真實困境。
+**核心洞察**：票證「真實性」越高，偵測越難。Golden Ticket 完全偽造，因果落差最明顯；Sapphire Ticket 連 PAC 都是真實的，標準日誌幾乎看不到指紋。在Server 2025 環境，這四種票都被擋——防禦做到了「攻擊無法成功」，但同時也讓「攻擊嘗試本身」的訊號消失（不留 Security Event）。這個「防禦有效但偵測訊號也消失」的矛盾，是現代 AD 加固的真實困境。
 
 ---
 
