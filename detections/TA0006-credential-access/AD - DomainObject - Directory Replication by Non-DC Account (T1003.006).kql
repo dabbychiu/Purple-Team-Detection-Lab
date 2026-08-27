@@ -1,12 +1,17 @@
 //============================================================================
-//Rule : AD - DomainObject - Directory Replication by Non-DC Account 
+//Rule : AD - DomainObject - Directory Replication by Non-DC Account
 //MITRE : T1003.006 (OS Credential Dumping: DCSync)
 //Data Source : SecurityEvent , EventID : 4662
-//Prerequisite : DC 上網域物件啟用 SACL 稽核 (Audit Directory Service Access - Success)
-//Type : 非 DC 帳號請求目錄複寫 (DS-Replication-Get-Changes) — DCSync 特徵
-//Severity : CRITICAL - 成功即等同取得整個網域雜湊 (含 krbtgt)
-//Known FP : Azure AD Connect / 合法複寫服務帳號 (應以 allowlist 排除)
-//Tuning : 白名單合法複寫帳號後，任何命中即應視為高優先事件
+//Prerequisite : 啟用 "Audit Directory Service Access (Success)"
+//Type : 偵測非 DC 帳號使用 Replicating Directory Changes 權限（DCSync 特徵）
+//Severity : CRITICAL - DCSync 可取得全域 NTLM hash，域控完整淪陷
+//Known FP : 合法 AD 複寫（DC 機器帳號）、Azure AD Connect 同步帳號、備份軟體服務帳號
+//Tuning : 排除 DC 機器帳號（SubjectUserName endswith "$"）；排除已知同步帳號白名單
+//Alert Rule : 建議排程 5-15 分鐘，時間窗與排程對齊
+//             DCSync 屬高危行為，發生即需即時告警，不需要時間窗聚合
+//Note : 本 lab 中 svc_backup 透過 DCSync 取得 krbtgt NTLM/AES256
+//       AccessMask 0x100 + replication GUID 確認（環境校準：非 0x40000）；偵測訊號已驗證
+//       時間窗由 Alert Rule 控制，規則本身不設 ago() 避免重複告警問題
 //============================================================================
 SecurityEvent
 | where EventID == 4662
@@ -18,7 +23,7 @@ SecurityEvent
 )
 | where SubjectUserName !endswith "$"
 | where SubjectUserName != "-"
-| project 
+| project
     TimeGenerated,
     SubjectAccount,
     Computer,

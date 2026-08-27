@@ -5,28 +5,31 @@
 //Prerequisite : 目標服務主機（SRV-FILE）與 DC 皆納入 Sentinel 日誌收集，SRV-FILE AMA 已安裝
 //Type : 偵測目標服務有登入（4624）但 DC 無對應服務票發放（4769）——Silver Ticket 繞過 DC 的矛盾
 //Severity : CRITICAL - Silver Ticket 不經 DC，此「服務有存取、DC 無紀錄」矛盾是唯一指紋
-//Known FP : 快取票證續用；以較寬時間窗與服務帳號基線降噪
-//Tuning : 針對高價值服務主機（SRV-FILE）個別套用；SRV-FILE AMA 為必要前提
-//Note : 本 lab 以 cifs/SRV-FILE.corp.lab Silver Ticket 存取 C$/FinanceShare/HRShare，
-//       SRV-FILE 4624（LogonType=3，Kerberos，SrcIp=10.0.5.4）有，DC 4769 無；
+//Known FP : 票證快取續用——使用者用快取票重連服務，DC 不記新 4769，規則誤報
+//           縮短時間窗（30m）可降低快取票跨窗的機率
+//Tuning : 此規則設計為針對單一高價值目標主機的專用規則
+//         不建議移除 Computer filter 改成全主機掃描——4624 量過大會導致 timeout
+//         真實環境部署建議：針對每台高價值主機各建一條規則（SRV-FILE、HR-Server、Finance-DB）
+//         時間窗 ago(30m) 適合小規模環境；海量日誌環境建議縮短至 ago(15m)
+//Alert Rule : 建議排程 15 分鐘，與時間窗 ago(30m) 對齊
+//Note : 本 lab 以 cifs/SRV-FILE.corp.lab Silver Ticket 存取 C$/FinanceShare/HRShare
+//       SRV-FILE 4624（LogonType=3，Kerberos，SrcIp=10.0.5.4）有，DC 4769 無
 //       SRV-FILE AMA 於執行期間安裝後偵測訊號已驗證
-//Fix : [v2] DC 那側的 DCTickets let 區塊加入 TimeGenerated > ago(3h) 時間範圍限定；
-//       原版 DCTickets 沒有時間過濾，會掃全表歷史資料；
-//       leftanti 比對時若 DC 在數天前有過相同帳號的 4769，會誤判「DC 無紀錄」——
-//       兩側時間窗應一致，才能正確表達「在同一時段內 DC 沒有對應的 TGS 發放」
+//       join 條件修正：右表加 ServiceName has "SRV-FILE" 確保比對的是對 SRV-FILE 索票的記錄
 //============================================================================
 let DCTickets = SecurityEvent
     | where Computer has "DC01" and EventID == 4769
-    | where TimeGenerated > ago(3h)                  // [Fix] 加入時間窗，與 SRV-FILE 側一致
-    | extend TargetUser  = extract(@'<Data[^>]*Name="TargetUserName"[^>]*>([^<]+)</Data>', 1, EventData)
-    | extend ServiceName = extract(@'<Data[^>]*Name="ServiceName"[^>]*>([^<]+)</Data>', 1, EventData)
+    | where TimeGenerated > ago(30m)
+    | extend TargetUser = extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData))
+    | extend ServiceName = extract(@'<Data Name="ServiceName">([^<]+)</Data>', 1, tostring(EventData))
+    | where ServiceName has "SRV-FILE"
     | project TgsTime=TimeGenerated, TargetUser, ServiceName;
 SecurityEvent
 | where Computer has "SRV-FILE" and EventID == 4624
 | where LogonType == 3
 | where AuthenticationPackageName == "Kerberos"
 | where TargetUserName !endswith "$"
-| where TimeGenerated > ago(3h)
+| where TimeGenerated > ago(30m)
 | project LogonTime=TimeGenerated, TargetUserName, Computer, IpAddress
 | join kind=leftanti DCTickets on $left.TargetUserName == $right.TargetUser
 | project LogonTime, TargetUserName, Computer, IpAddress

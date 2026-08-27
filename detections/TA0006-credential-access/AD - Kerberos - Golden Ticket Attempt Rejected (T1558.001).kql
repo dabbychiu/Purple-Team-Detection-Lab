@@ -4,13 +4,15 @@
 //Data Source : SecurityEvent , EventID : 4768
 //Prerequisite : DC 啟用 "Audit Kerberos Authentication Service (Success and Failure)"
 //Type : 偵測 DC 拒絕偽造票（Status 0x12 = KDC_ERR_TGT_REVOKED）——Server 2025 PAC 驗證攔截指紋
-//       在強化環境中，TGT_REVOKED 幾乎確定為票證鍛造嘗試的指紋
 //Severity : CRITICAL - 合法票不會被 revoke；此狀態碼在正常操作中極為罕見
 //Known FP : 極少；帳號被明確 revoke 的合法場景（如強制登出）
 //Tuning : 搭配來源 IP 非已知工作站，以及非機器帳號，提高可信度
-//Note : 環境實測（Windows Server 2025）：Golden/Diamond/Sapphire 六種方式（NTLM hash、
-//       AES256、Diamond -request、Diamond -extra-pac、RID 500、KdcPacRequestorEnforcement=0）
-//       均被擋；但 DC Security Log 不產生失敗 4768——此規則為設計完成，待環境修改 PAC 設定後驗證
+//Note : 概念設計；環境實測（Windows Server 2025）：
+//       Golden Ticket 六種方式均被 PAC 驗證擋住（KDC_ERR_TGT_REVOKED）
+//       但 DC Security Log 不產生失敗的 4768——DC 在 Kerberos 協定層拒絕
+//       不進入稽核環節，此規則在本環境無遙測可驗證
+//       其他環境若 PAC 驗證設定不同，Status=0x12 的失敗 4768 可能存在
+//       部署前需確認環境是否會產生此類失敗事件
 //============================================================================
 SecurityEvent
 | where EventID == 4768

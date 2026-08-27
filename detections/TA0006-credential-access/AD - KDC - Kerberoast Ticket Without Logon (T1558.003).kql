@@ -3,14 +3,17 @@
 //MITRE : T1558.003 (Kerberoasting)
 //Data Source : SecurityEvent , EventID : 4769 + 4624
 //Prerequisite : 啟用 Kerberos 服務票稽核與登入稽核
-//Type : 偵測被索取的服務帳號後續無對應 4624 登入——票被拿去離線破解而非實際使用的因果落差
+//Type : 偵測被索取的服務帳號後續無對應 4624 登入——票被拿去離線破解而非實際使用
 //Severity : HIGH - 索票卻不使用是 Kerberoasting 的行為指紋
-//Known FP : 服務健康檢查可能索票不登入；以服務帳號白名單排除
-//Tuning : 調整時間窗與 RoastedNoLogon 門檻
-//Note : 比對對象為 ServiceName（被索票的服務帳號）vs 4624 Account，非 Requester vs Account；
-//       版本 B（ServiceName vs Account）才正確對應「票是否被實際使用」的偵測意圖；
-//       RoastedNoLogon=6（含 corp.lab\\ 前綴格式重複），dcount 去重後實際為 3 個帳號；
-//       SrcIp filter 聚焦 Kali 網段（實際部署應改為排除已知合法來源）；偵測訊號已驗證
+//Known FP : 服務帳號本來就不會自己登入——此為此規則在真實環境的根本 FP 問題
+//Tuning : 此規則在真實環境有兩個根本限制，不建議直接部署生產環境：
+//         1. 效能：4769 和 4624 兩個大表 leftanti join，繁忙環境可能 timeout
+//         2. 邏輯 FP：服務帳號本來就不會自己登入，規則會持續告警
+//         此規則作為「偵測概念示範」保留，真實環境建議改用以下方向：
+//         - 搭配規則 AD - KDC - Kerberoasting Multi-SPN Harvesting 的 SPNSet 內容人工分流
+//Note : 比對對象為 ServiceName vs 4624 Account（版本 B，正確比對維度）
+//       RoastedNoLogon=6（含 corp.lab\\ 前綴格式重複），dcount 去重後實際為 3 個帳號
+//       本 lab 驗證通過，但真實環境有上述兩個根本限制不建議部署
 //============================================================================
 let TicketReqs = SecurityEvent
     | where EventID == 4769

@@ -5,10 +5,14 @@
 //Prerequisite : 啟用 Kerberos 認證與服務票稽核
 //Type : 偵測有服務票請求（4769）卻無對應 TGT 取得（4768）——偽造 TGT 的因果缺失特徵
 //Severity : CRITICAL - Golden Ticket 完全繞過 AS 交換，此因果落差是核心指紋
-//Known FP : 票證快取續用可能造成時間錯位；以較寬時間窗與帳號基線降噪
-//Tuning : 調整關聯時間窗；搭配異常 lifetime 規則交叉確認
-//Note : 環境限制（Server 2025 PAC 驗證）：Golden Ticket 在本環境被擋，無遙測可驗證；
+//Known FP : 票證快取續用——TGT 預設有效 10 小時，窗口內找不到對應 4768 是正常行為
+//           導致所有使用快取 TGT 的正常使用者都會被誤報，FP 極高
+//Tuning : 此規則在真實環境有兩個根本限制，不建議直接部署生產環境：
+//         1. 票證快取：正常使用者大量觸發 FP
+//         2. 效能：4768 和 4769 兩個高量事件表做 leftanti join，繁忙環境可能 timeout
+//Note : 環境限制（Server 2025 PAC 驗證）：Golden Ticket 在本環境被擋，無遙測可驗證
 //       規則邏輯設計完成，適用於 PAC 驗證未啟用或較舊版 Server 的環境
+//       此規則作為「偵測概念示範」保留，不建議直接部署生產環境
 //============================================================================
 let ASReqs = SecurityEvent
     | where EventID == 4768

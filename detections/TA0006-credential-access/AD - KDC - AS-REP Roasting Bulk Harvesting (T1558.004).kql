@@ -2,13 +2,18 @@
 //Rule : AD - KDC - AS-REP Roasting Bulk Harvesting (Behavioral Layer)
 //MITRE : T1558.004 (AS-REP Roasting)
 //Data Source : SecurityEvent , EventID : 4768
-//Prerequisite : 同上
+//Prerequisite : DC 啟用 "Audit Kerberos Authentication Service (Success)"
 //Type : 偵測單一來源短時間內對多個無預先驗證帳號索取 TGT——批次 AS-REP 收割
 //Severity : HIGH - 批次行為幾乎排除設定疏失的可能，高度確認為攻擊
 //Known FP : 幾乎無；正常運作不會短時間對多個關閉預先驗證的帳號集中請求
 //Tuning : 依環境調整 bin 與門檻；同一來源 IP 命中多個 TargetUser 是關鍵訊號
-//Note : PreAuthType/TargetUserName/IpAddress 自 EventData XML 以 extract() 取值；
-//       本 lab 3 個 svc-legacy 帳號，TargetedAccounts=3，偵測訊號已驗證
+//Alert Rule : 建議排程 10-15 分鐘，與 bin(TimeGenerated, 10m) 對齊
+//Note : 此規則適用於環境中存在多個 DoesNotRequirePreAuth 帳號的場景
+//       單一帳號環境規則 AD - KDC - AS-REP Roasting Pre-Auth Disabled 即足夠
+//       TargetedAccounts >= 2 的門檻在只有 1 個弱點帳號的環境永遠不觸發
+//       適用場景：遺留系統多、歷史設定疏失累積的老舊企業環境
+//       高合規環境（無 PreAuthType=0 帳號）兩條規則均不需要啟用
+//Fix : 缺少時間窗（TimeGenerated > ago(X)），部署前建議加入以避免掃全表歷史
 //============================================================================
 SecurityEvent
 | where EventID == 4768

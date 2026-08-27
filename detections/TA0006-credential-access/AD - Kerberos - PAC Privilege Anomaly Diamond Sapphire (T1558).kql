@@ -3,12 +3,15 @@
 //MITRE : T1558 (Diamond / Sapphire Ticket)
 //Data Source : SecurityEvent , EventID : 4769 + 4672
 //Prerequisite : 啟用服務票與特殊權限指派稽核
-//Type : 偵測低權帳號的票證伴隨高權限指派——PAC 可能被竄改的間接特徵
-//Severity : MEDIUM - 輔助偵測；Diamond/Sapphire PAC 內容看似合法，標準日誌僅能部分偵測
-//Known FP : 合法權限提升；信心較低，需人工佐證
-//Tuning : 此規則為輔助；完整偵測需 PAC 深度解析，超出標準 SIEM 日誌範圍
-//Note : 環境限制（Server 2025 PAC 驗證）：Diamond/Sapphire 在本環境同樣被攔截；
-//       規則邏輯設計完成，適用於 PAC 驗證較弱的環境；概念設計
+//Type : 偵測索票後伴隨特殊權限賦予——PAC 可能被竄改的間接特徵
+//Severity : MEDIUM - 輔助偵測；信心較低，需人工佐證
+//Known FP : 管理員正常操作（索票後做管理工作）完全符合 4769+4672 的模式，FP 極高
+//Tuning : 此規則有兩個根本限制：
+//         1. FP 極高：IT 管理員索票後做任何管理操作都會命中
+//         2. join 邏輯：索票者有特殊權限賦予不代表票證被竄改，兩件事沒有直接因果
+//Note : 概念設計；Diamond/Sapphire Ticket 在本環境（Server 2025 PAC 驗證）被擋，無遙測可驗證
+//       Diamond/Sapphire 的真實偵測需要 PAC 深度解析能力，超出標準 SIEM 日誌範圍
+//       此規則作為「偵測概念示範」保留，不建議直接部署生產環境
 //============================================================================
 let PrivAssign = SecurityEvent
     | where EventID == 4672

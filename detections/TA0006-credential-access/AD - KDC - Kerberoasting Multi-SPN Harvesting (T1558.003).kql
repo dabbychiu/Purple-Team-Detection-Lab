@@ -3,13 +3,20 @@
 //MITRE : T1558.003 (Kerberoasting)
 //Data Source : SecurityEvent , EventID : 4769
 //Prerequisite : DC 啟用 "Audit Kerberos Service Ticket Operations (Success)"
-//Type : 偵測短時間對多個服務 SPN 索取服務票——工具無關的收割特徵（升級自既有單事件規則）
+//Type : 偵測短時間對多個服務 SPN 索取服務票——工具無關的收割特徵
 //Severity : HIGH - 集中索多個服務票為 Kerberoasting 收割典型模式
-//Known FP : 資產盤點/監控工具批次查詢；應以服務帳號白名單排除
-//Tuning : 調整 RequestCount 門檻；此規則不限加密類型（AES/RC4 均抓，避免 AES 漏掉）
-//Note : 本 lab DC 強制 AES（Server 2025），RC4 請求報 KDC_ERR_ETYPE_NOSUPP；
-//       原 Chain 1 RC4-only 規則在此環境永不觸發，本規則移除 enctype 限定；
-//       4769 欄位同樣自 EventData XML 以 extract() 取值；偵測訊號已驗證
+//Known FP : IT 管理員短時間存取多個服務（門禁/SharePoint/DB/設備 log）
+//           此場景在資料上與攻擊無法區分，需搭配規則 AD - KDC - Kerberoast Ticket Without Logon 確認
+//Tuning : 依環境調整 RequestCount 門檻；此規則不限加密類型
+//Note : 此規則單獨命中不代表確定是攻擊
+//       IT 管理員存取多個服務時同樣會在短時間內索取多張票
+//       建議搭配規則 AD - KDC - Kerberoast Ticket Without Logon 確認
+//       規則命中 + Ticket Without Logon 命中 = 高可信 Kerberoasting
+//       規則命中但 Ticket Without Logon 未命中 = 降低優先級，確認 SPNSet 內容
+//       SPNSet 含 cifs/host/http = 正常服務存取
+//       SPNSet 含 MSSQLSvc/BackupSvc 等使用者帳號 SPN = 升級調查
+//       本 lab DC 強制 AES（Server 2025），RC4 請求報 KDC_ERR_ETYPE_NOSUPP
+//       原 Chain 1 RC4-only 規則在此環境永不觸發，本規則移除 enctype 限定；偵測訊號已驗證
 //============================================================================
 SecurityEvent
 | where EventID == 4769

@@ -3,14 +3,16 @@
 //MITRE : T1003.006 -> T1558.001 (DCSync 銜接票證鍛造)
 //Data Source : SecurityEvent , EventID : 4662 + 4769
 //Prerequisite : 啟用目錄服務存取稽核與 Kerberos 服務票稽核
-//Type : 偵測非機器帳號複寫（DCSync）後緊接的異常票證活動——把 DCSync 從單事件升級為攻擊鏈節點
+//Type : 偵測非機器帳號複寫（DCSync）後緊接的異常票證活動——攻擊鏈推進的確認
 //Severity : CRITICAL - DCSync 取 KRBTGT 後的票證活動高度指向 Golden Ticket 前置
 //Known FP : 極少；合法 DCSync 僅限 DC 機器帳號（已排除）
-//Tuning : 調整關聯時間窗；SrcIp filter 在 lab 精準指向 Kali，實際部署改為排除已知合法 IP
-//Note : 本 lab 中 DCSync(12:40) 後接 Kerberoasting 4769(12:02-12:11)，時序相反；
+//Tuning : SrcIp 白名單需依環境調整，排除 DC 網段、工作站網段、已知合法服務伺服器
+//         lab 版本排除 10.0.3.x（DC）和 10.0.4.x（工作站）
+//Alert Rule : 建議排程 15 分鐘，左表空時幾乎無效能消耗
+//Note : 左表（DCSyncEvents）在正常環境幾乎為空，join 立刻結束，效能影響極低
+//       只有真實 DCSync 發生時才會掃右表（4769），此為設計預期行為（左表驅動優化）
+//       本 lab DCSync(12:40) 後接 Kerberoasting 4769(12:02-12:11)，時序相反
 //       雙向時間窗（DCSyncTime ± 2h）確保關聯成功；偵測訊號已驗證
-//Fix : [v2] 加入 bin(DCSyncTime, 1h) 去重，避免 join 膨脹導致同一 DCSync 事件產生多筆重複告警；
-//       extract() 統一使用帶 [^>]* 的更穩固 pattern；移除多餘的 tostring()
 //============================================================================
 let DCSyncEvents = SecurityEvent
     | where EventID == 4662 and ObjectServer == "DS"
@@ -19,26 +21,29 @@ let DCSyncEvents = SecurityEvent
         "1131f6ad-9c07-11d1-f79f-00c04fc2dcd2")
     | where SubjectUserName !endswith "$"
     | where SubjectUserName != "-"
-    | where TimeGenerated > ago(3h)
+    | where TimeGenerated > ago(1h)
     | project DCSyncTime=TimeGenerated, Attacker=SubjectAccount, Computer;
 DCSyncEvents
 | join kind=inner (
     SecurityEvent
     | where EventID == 4769
     | where TimeGenerated > ago(3h)
-    | extend ServiceName = extract(@'<Data[^>]*Name="ServiceName"[^>]*>([^<]+)</Data>', 1, EventData)
-    | extend TargetUser  = extract(@'<Data[^>]*Name="TargetUserName"[^>]*>([^<]+)</Data>', 1, EventData)
-    | extend SrcIp       = extract(@'<Data[^>]*Name="IpAddress"[^>]*>([^<]+)</Data>', 1, EventData)
+    | extend ServiceName = extract(@'<Data Name="ServiceName">([^<]+)</Data>', 1, tostring(EventData))
+    | extend TargetUser = extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData))
+    | extend SrcIp = extract(@'<Data Name="IpAddress">([^<]+)</Data>', 1, tostring(EventData))
     | where ServiceName !startswith "krbtgt"
     | where TargetUser !endswith "$"
-    | where SrcIp startswith "::ffff:10.0.5."
+    | where SrcIp !startswith "::1"
+    | where SrcIp !startswith "::ffff:10.0.3."
+    | where SrcIp !startswith "::ffff:10.0.4."
+    | where SrcIp != "-"
     | project TgsTime=TimeGenerated, ServiceName, TargetUser, SrcIp, Computer
 ) on Computer
 | where TgsTime between ((DCSyncTime - 2h) .. (DCSyncTime + 2h))
 | summarize
     TicketCount = count(),
-    Services    = make_set(ServiceName, 20),
-    FirstTgs    = min(TgsTime),
-    LastTgs     = max(TgsTime)
-    by bin(DCSyncTime, 1h), Attacker, SrcIp
+    Services = make_set(ServiceName, 20),
+    FirstTgs = min(TgsTime),
+    LastTgs = max(TgsTime)
+    by DCSyncTime, Attacker, SrcIp
 | order by DCSyncTime desc
