@@ -1,29 +1,35 @@
 //============================================================================
-//Rule : AD - Delegation - RBCD Attribute Modification
-//MITRE : T1558.003 / RBCD abuse
-//Data Source : SecurityEvent , EventID : 5136
-//Prerequisite : DC 啟用 "Audit Directory Service Changes (Success)"，並對電腦物件設 SACL
-//Type : 偵測 msDS-AllowedToActOnBehalfOfOtherIdentity 屬性被非機器帳號寫入——RBCD 攻擊寫入端
-//Severity : HIGH - RBCD 屬性寫入是資源型限制委派濫用的最早攔截點
-//Known FP : 合法委派設定變更（應由已授權管理帳號執行，可白名單）
-//Tuning : 對比授權委派管理清單；非清單帳號寫入即高可信
-//Note : 環境實測：impacket-rbcd 寫入成功，但 DC 本機 5136 不產生
-//       即使設了 SACL（Everyone WriteProperty Success）且稽核政策開啟，5136 仍不觸發
-//       根本原因：impacket 走的 LDAP channel 不產生目錄服務變更稽核事件
-//       只有透過 PowerShell AD 模組（Set-ADComputer）或 ADUC GUI 才能穩定觸發 5136
-//       真實環境攻擊者使用 impacket/BloodHound/PowerView 等工具時同樣可能不觸發
-//       替代偵測方向（均有根本限制）：
-//       - 4662 WriteProperty（0x20）：FP 極高，無法區分 RBCD 和其他屬性寫入
-//       - DeviceProcessEvents：攻擊從 Kali 發起，Windows 端點無程序記錄
-//       - DeviceNetworkEvents：同上，MDE 看不到 Kali 的 LDAP 連線
-//       此規則作為「偵測概念示範」保留，標環境限制
+//Rule : AD - Pass-the-Ticket - Forged TGT Lateral Movement Behavioral
+//MITRE : T1550.003 (Use Alternate Authentication Material: Pass the Ticket)
+//Data Source : SecurityEvent , EventID : 4624
+//Prerequisite : 目標主機（SRV-FILE 等高價值主機）納入 Sentinel 日誌收集，AMA 已安裝
+//Type : 偵測同帳號同來源 IP 在短時間內對多台主機做 Kerberos 登入——票證橫向移動的行為指紋
+//Severity : HIGH - 正常使用者不會在短時間內用相同 IP 對多台主機做 Kerberos 登入
+//Known FP : IT 管理員批次遠端管理（runas 跨帳號、自動化部署）
+//           合法服務帳號做服務巡檢（SCOM/監控代理）
+//Tuning : 建立已知管理員來源 IP 白名單；縮短 bin 時間窗提高精度
+//         TargetHostCount 門檻依環境調整；小環境 >=2 即可，大環境建議 >=3
+//Alert Rule : 建議排程 30 分鐘，與 bin(TimeGenerated, 30m) 對齊
+//Note : 本 lab 以 Silver Ticket 存取 SRV-FILE C$/FinanceShare/HRShare（cifs SPN）
+//       SRV-FILE 4624（LogonType=3, Kerberos, SrcIp=10.0.5.4）有，DC 4769 無
+//       Stage 6d 偵測邏輯：同帳號同 IP 短時間打多台主機
+//       Lab 環境只有一台 SRV-FILE，TargetHostCount 無法 >=2，規則未驗證
+//       概念設計：適用於有多台高價值主機的企業環境
+//       搭配 AD - Kerberos - Silver Ticket Service Access Without DC Log 使用效果更佳
 //============================================================================
 SecurityEvent
-| where EventID == 5136
-| extend AttrName = extract(@'<Data Name="AttributeLDAPDisplayName">([^<]+)</Data>', 1, tostring(EventData))
-| extend SubjectUser = extract(@'<Data Name="SubjectUserName">([^<]+)</Data>', 1, tostring(EventData))
-| extend ObjectDN = extract(@'<Data Name="ObjectDN">([^<]+)</Data>', 1, tostring(EventData))
-| where AttrName == "msDS-AllowedToActOnBehalfOfOtherIdentity"
-| where SubjectUser !endswith "$"
-| project TimeGenerated, SubjectUser, AttrName, ObjectDN, Computer
-| order by TimeGenerated desc
+| where EventID == 4624
+| where LogonType == 3
+| where AuthenticationPackageName == "Kerberos"
+| where TargetUserName !endswith "$"
+| where TargetUserName != "ANONYMOUS LOGON"
+| where IpAddress !startswith "127."
+| where IpAddress != "-"
+| summarize
+    TargetHostCount = dcount(Computer),
+    TargetHosts = make_set(Computer, 20),
+    LogonCount = count()
+    by TargetUserName, IpAddress, bin(TimeGenerated, 30m)
+| where TargetHostCount >= 2
+| project TimeGenerated, TargetUserName, IpAddress, TargetHostCount, TargetHosts, LogonCount
+| order by TargetHostCount desc
