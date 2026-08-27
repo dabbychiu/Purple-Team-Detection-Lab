@@ -91,7 +91,7 @@ flowchart TD
 | Stage 6b | T1558.002 Silver Ticket | ✅ 驗證 | cifs/SRV-FILE；存取 C$/FinanceShare/HRShare；SRV-FILE 4624 有但 DC 4769 無 | AD - Kerberos - Silver Ticket Service Access Without DC Log |
 | Stage 6c | T1558 Diamond/Sapphire | 🔵 環境限制 | Windows Server 2025 PAC 驗證同樣擋住 Diamond | AD - Kerberos - PAC Privilege Anomaly（概念） |
 | Stage 6d | T1550.003 Pass-the-Ticket | ⚠️ 部分 | Silver Ticket 存取 C$/FinanceShare/HRShare 成功；遠端執行受 cifs SPN 限制 | AD - Pass-the-Ticket - Forged TGT Lateral Movement Behavioral |
-| Stage 7a | T1187/RBCD | ⚠️ 部分 | msDS-AllowedToActOnBehalfOfOtherIdentity 寫入成功；S4U 被 Server 2025 擋；5136 不產生 | AD - Delegation - RBCD Attribute Modification（概念） |
+| Stage 7a | T1187/RBCD | ⚠️ 部分 | msDS-AllowedToActOnBehalfOfOtherIdentity 寫入成功；S4U 被 Server 2025 擋；5136 不產生；改以 DeviceProcessEvents 工具簽章層偵測 | AD - Delegation - RBCD Attribute Modification（工具簽章層，攻擊從 Kali 發起，Windows 端無記錄）|
 | Stage 7b | T1187 Unconstrained Delegation | ✅ 驗證 | PetitPotam Attack worked!；Responder 捕獲 DC01$ NTLMv2 hash；MDE DeviceNetworkEvents 驗證 | AD - Coerced Authentication - DC Outbound SMB |
 | Stage 8 | T1484.001/T1222 ACL/GPO | ⚠️ 部分 | ACL 寫入 5136 Sentinel 通過；GPO SYSVOL 寫入成功；下游執行 Windows 11 CSE 不觸發 | AD - ACL - GenericAll DACL Grant on Container<br>AD - GPO - Unauthorized Group Policy Modification（概念）<br>AD - GPO Abuse to Endpoint Execution（概念） |
 
@@ -127,7 +127,7 @@ flowchart TD
 ### TA0008-Lateral-Movement（3 條）
 | 規則 | 層級 | 狀態 |
 |---|---|---|
-| AD - Delegation - RBCD Attribute Modification (T1558.003) | 原語層 | 🔘 5136 不產生 |
+| AD - Delegation - RBCD Attribute Modification (T1484.001) | 工具簽章層 | 🔘 攻擊從 Kali 發起，Windows 端點無 DeviceProcessEvents 記錄 |
 | AD - Coerced Authentication - DC Outbound SMB (T1187) | 行為層 | ✅ |
 | AD - Pass-the-Ticket - Forged TGT Lateral Movement Behavioral (T1550.003) | 行為層 | 🔘 環境規模限制未驗證 |
 
@@ -153,7 +153,7 @@ Windows Server 2025 開啟多層 Kerberos PAC 驗證，impacket v0.14.0 六種�
 comsvcs MiniDump 被 MDE（HackTool:Win32/DumpLsass.H）在 rundll32 層級阻止。MDE 的工具簽章層在這裡有效，與 Stage 1 LOTL 讓工具簽章層失效形成對比。
 
 **Stage 7a S4U2Self — 🔵 Server 2025 Protocol Transition 限制**
-RBCD 屬性寫入成功，但 S4U2Self 被 Server 2025 的 Protocol Transition 限制擋住。5136 DC 本機不產生，impacket LDAP channel 不觸發稽核事件。
+RBCD 屬性寫入成功，但 S4U2Self 被 Server 2025 的 Protocol Transition 限制擋住。5136 DC 本機不產生，impacket LDAP channel 不觸發稽核事件。偵測改用 DeviceProcessEvents 工具簽章層，偵測 impacket rbcd.py / PowerView Set-DomainRBCD 命令列特徵；但因攻擊從 Kali 直接發起 LDAP，Windows 端點無對應程序記錄，規則仍為概念設計。
 
 **Stage 8 GPO 下游執行 — 🔘 Windows 11 CSE 問題**
 SYSVOL 寫入成功（路徑B），但 Windows 11 對手動寫入 SYSVOL 的 CSE 觸發條件嚴格，Immediate Task 和 Startup Script 重開機後均未執行。偵測規則改用 DeviceFileEvents 偵測路徑B寫入。

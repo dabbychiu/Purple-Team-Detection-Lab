@@ -22,10 +22,9 @@
 | AD - DCSync Followed by Anomalous KRBTGT Activity | 5 | DCSync 後緊接票證活動，確認攻擊鏈推進 |
 | AD - Kerberos - Golden Ticket Attempt Rejected | 6a | 偽造票被 DC PAC 驗證拒絕，攻擊嘗試留下痕跡 |
 | AD - Kerberos - Silver Ticket Service Access Without DC Log | 6b | 服務有存取但 DC 無 4769，Silver Ticket 繞過 DC |
-| AD - Pass-the-Ticket - Anomalous Kerberos Logon | 6d | Kerberos 登入來自非預期來源 IP |
 | AD - Pass-the-Ticket - Forged TGT Lateral Movement Behavioral | 6d | 同帳號同 IP 短時間打多台主機，票證橫向移動 |
 | AD - Delegation - RBCD Attribute Modification | 7a | msDS-AllowedToActOnBehalfOfOtherIdentity 被寫入 |
-| AD - Coerced Authentication Anomaly | 7b | DC 機器帳號票證來自非 DC 網段，強制驗證指紋 |
+| AD - Coerced Authentication - DC Outbound SMB | 7b | DC 對非 DC 網段發起 SMB 連線，PetitPotam/PrinterBug 強制驗證指紋 |
 | AD - ACL - GenericAll DACL Grant on Container | 8 | OU/GPO 容器安全性描述元被修改，持久化前置 |
 | AD - GPO - Unauthorized Group Policy Modification | 8 | 非授權帳號修改 GPO 物件 |
 | AD - GPO Abuse to Endpoint Execution | 8 | GPO 變更後端點下游執行，確認 GPO 濫用生效 |
@@ -230,7 +229,7 @@
 - **Stage 6b（Silver Ticket）命中**（DC 無記錄即確認）
 - **Stage 8 GPO 下游執行命中**
 - **Stage 1-3 任兩條在 30 分鐘內同一帳號命中**
-- Unconstrained Delegation 強制驗證確認（DC 對外 SMB 非預期）
+- AD - Coerced Authentication - DC Outbound SMB 命中（DC 對外 SMB 非預期）
 - 觸發帳號為既有特權帳號或服務帳號
 
 ---
