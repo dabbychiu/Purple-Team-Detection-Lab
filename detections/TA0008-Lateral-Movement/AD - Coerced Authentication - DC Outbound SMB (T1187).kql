@@ -5,10 +5,15 @@
 //Prerequisite : DC01 已 MDE onboard，DeviceNetworkEvents connector 啟用
 //Type : 偵測 DC 對非 DC 網段發起 SMB 連線——PetitPotam/PrinterBug 強制驗證的網路指紋
 //Severity : CRITICAL - DC 不應主動對工作站發起 SMB 連線
-//Known FP : 合法的 DC 對外 SMB（如 DFS、SYSVOL 複寫）；以已知合法目標 IP 白名單排除
-//Tuning : 聚焦 RemoteIP 非 DC 網段（10.0.3.x）的出站 SMB
+//Known FP : DFS 複寫、備份軟體、監控代理——均為已知固定目標，可白名單排除
+//Tuning : 部署前確認環境內 DC 對外 SMB 的合法目標，加入白名單排除：
+//         - DFS namespace 伺服器 IP/網段
+//         - 備份伺服器 IP/網段
+//         - 監控代理推送目標 IP/網段
+//         白名單以外的任何 DC 對外 SMB 即高可信告警
+//Alert Rule : 建議排程 5-15 分鐘，DC 對外 SMB 屬高危行為，發生即需即時告警
 //Note : 本 lab 中 PetitPotam（EfsRpcEncryptFileSrv，EfsRpcOpenFileRaw 已修補）強制 DC01
-//       對 Kali（10.0.5.4）做 NTLM 認證，Responder 捕獲 DC01$ NTLMv2 hash；
+//       對 Kali（10.0.5.4）做 NTLM 認證，Responder 捕獲 DC01$ NTLMv2 hash
 //       MDE DeviceNetworkEvents 偵測到 dc01.corp.lab → 10.0.4.4:445；偵測訊號已驗證
 //============================================================================
 DeviceNetworkEvents
@@ -16,5 +21,7 @@ DeviceNetworkEvents
 | where RemotePort == 445
 | where RemoteIP !startswith "10.0.3."
 | where RemoteIP !startswith "::1"
+// 部署時依環境新增白名單：
+// | where RemoteIP !startswith "10.0.X."  // DFS/備份/監控伺服器網段
 | project Timestamp, DeviceName, RemoteIP, RemotePort
 | order by Timestamp desc
