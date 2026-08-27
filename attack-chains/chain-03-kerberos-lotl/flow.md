@@ -158,10 +158,4 @@ RBCD 屬性寫入成功，但 S4U2Self 被 Server 2025 的 Protocol Transition �
 **Stage 8 GPO 下游執行 — 🔘 Windows 11 CSE 問題**
 SYSVOL 寫入成功（路徑B），但 Windows 11 對手動寫入 SYSVOL 的 CSE 觸發條件嚴格，Immediate Task 和 Startup Script 重開機後均未執行。偵測規則改用 DeviceFileEvents 偵測路徑B寫入。
 
----
 
-## Chain 3 最終狀態
-
-所有 Stage 均已執行完畢。待補項目：
-1. Stage 4b Sentinel KQL 最終確認（4662 有在 DC01，等 ingestion 後補跑查詢）
-2. Stage 8 GPO DeviceFileEvents 補跑驗證（DC01 MDE 有沒有記錄 SYSVOL 寫入）
