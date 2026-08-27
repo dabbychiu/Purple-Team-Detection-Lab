@@ -1,0 +1,29 @@
+//============================================================================
+//Rule : AD - Delegation - RBCD Attribute Modification
+//MITRE : T1558.003 / RBCD abuse
+//Data Source : SecurityEvent , EventID : 5136
+//Prerequisite : DC 啟用 "Audit Directory Service Changes (Success)"，並對電腦物件設 SACL
+//Type : 偵測 msDS-AllowedToActOnBehalfOfOtherIdentity 屬性被非機器帳號寫入——RBCD 攻擊寫入端
+//Severity : HIGH - RBCD 屬性寫入是資源型限制委派濫用的最早攔截點
+//Known FP : 合法委派設定變更（應由已授權管理帳號執行，可白名單）
+//Tuning : 對比授權委派管理清單；非清單帳號寫入即高可信
+//Note : 環境實測：impacket-rbcd 寫入成功，但 DC 本機 5136 不產生
+//       即使設了 SACL（Everyone WriteProperty Success）且稽核政策開啟，5136 仍不觸發
+//       根本原因：impacket 走的 LDAP channel 不產生目錄服務變更稽核事件
+//       只有透過 PowerShell AD 模組（Set-ADComputer）或 ADUC GUI 才能穩定觸發 5136
+//       真實環境攻擊者使用 impacket/BloodHound/PowerView 等工具時同樣可能不觸發
+//       替代偵測方向（均有根本限制）：
+//       - 4662 WriteProperty（0x20）：FP 極高，無法區分 RBCD 和其他屬性寫入
+//       - DeviceProcessEvents：攻擊從 Kali 發起，Windows 端點無程序記錄
+//       - DeviceNetworkEvents：同上，MDE 看不到 Kali 的 LDAP 連線
+//       此規則作為「偵測概念示範」保留，標環境限制
+//============================================================================
+SecurityEvent
+| where EventID == 5136
+| extend AttrName = extract(@'<Data Name="AttributeLDAPDisplayName">([^<]+)</Data>', 1, tostring(EventData))
+| extend SubjectUser = extract(@'<Data Name="SubjectUserName">([^<]+)</Data>', 1, tostring(EventData))
+| extend ObjectDN = extract(@'<Data Name="ObjectDN">([^<]+)</Data>', 1, tostring(EventData))
+| where AttrName == "msDS-AllowedToActOnBehalfOfOtherIdentity"
+| where SubjectUser !endswith "$"
+| project TimeGenerated, SubjectUser, AttrName, ObjectDN, Computer
+| order by TimeGenerated desc
