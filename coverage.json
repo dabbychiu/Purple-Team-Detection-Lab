@@ -284,7 +284,7 @@
   "T1558": {
     "sentinel": [
       {
-        "name": "AD - Kerberos - PAC Privilege Anomaly Diamond Sapphire",
+        "name": "AD - Kerberos - PAC Privilege Anomaly (Diamond/Sapphire)",
         "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20Kerberos%20-%20PAC%20Privilege%20Anomaly%20Diamond%20Sapphire%20%28T1558%29.kql",
         "tactic": "credential-access"
       }
@@ -292,11 +292,6 @@
   },
   "T1550.003": {
     "sentinel": [
-      {
-        "name": "AD - Pass-the-Ticket - Anomalous Kerberos Logon",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0008-Lateral-Movement/AD%20-%20Pass-the-Ticket%20-%20Anomalous%20Kerberos%20Logon%20%28T1550.003%29.kql",
-        "tactic": "lateral-movement"
-      },
       {
         "name": "AD - Pass-the-Ticket - Forged TGT Lateral Movement Behavioral",
         "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0008-Lateral-Movement/AD%20-%20Pass-the-Ticket%20-%20Forged%20TGT%20Lateral%20Movement%20Behavioral%20%28T1550.003%29.kql",
@@ -316,7 +311,7 @@
   "T1484.001": {
     "sentinel": [
       {
-        "name": "AD - GPO - Unauthorized Group Policy Modification",
+        "name": "AD - GPO - Unauthorized Group Policy Modification (Path B)",
         "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0003-Persistence/AD%20-%20GPO%20-%20Unauthorized%20Group%20Policy%20Modification%20%28T1484.001%29.kql",
         "tactic": "persistence"
       },
