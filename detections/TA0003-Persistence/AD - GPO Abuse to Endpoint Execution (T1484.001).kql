@@ -1,38 +1,34 @@
 //============================================================================
-//Rule : AD - GPO Abuse to Endpoint Execution (Cross-Source Correlation)
+//Rule : AD - GPO Abuse to Endpoint Execution (Cross-Source Correlation, Path B)
 //MITRE : T1484.001 (Group Policy Modification)
-//Data Source : SecurityEvent 5136 + DeviceProcessEvents (MDE)
-//Prerequisite : DC 目錄變更稽核 + 端點 MDE onboard
-//Type : 關聯 GPO 變更（5136）與受影響端點的下游 startup/task 執行——證明 GPO 濫用實際生效
+//Data Source : DeviceFileEvents (MDE) + DeviceProcessEvents (MDE)
+//Prerequisite : DC01 已 MDE onboard；受影響端點已 MDE onboard
+//Type : 關聯 GPO SYSVOL 寫入（路徑B）與受影響端點的下游程序執行——證明 GPO 濫用實際生效
 //Severity : CRITICAL - GPO 變更導致端點執行是完整攻擊生效的鐵證
 //Known FP : 合法 GPO 部署腳本；以授權管理帳號與已知部署基線排除
-//Tuning : 調整關聯時間窗；此為全 chain 最複雜的跨源關聯，注意大表 join 效能
-//Note : 本 lab 中 Windows 11 端點不觸發 GPO Preferences CSE（Immediate Task/Startup Script），
-//       impacket 遠端寫入 SYSVOL 不觸發 5136，GPO 下游執行無遙測；規則標概念設計
-//       下游執行不觸發根本原因：Windows 11 對手動 SYSVOL 寫入的 CSE 觸發條件嚴格，
-//       需透過正式 GPO API（New-GPO）才能正確設定 CSE GUID 和觸發下游執行
-//Fix : [v2] 修正 join key 邏輯錯誤：原版 on $left.GPOTime == $right.ExecTime 要求
-//       兩個不同事件的 TimeGenerated 完全相等，幾乎永遠不會 match（join 邏輯上已死）；
-//       改為 on $left.Computer == $right.DeviceName（主機名）做 join key，
-//       再以 where ExecTime between (...) 做時間窗關聯，才是正確的 cross-source join 模式
+//Tuning : 調整關聯時間窗（6h）；GPO 套用到端點執行可能有延遲
+//Note : 概念設計；本 lab Windows 11 端點不觸發 GPO Preferences CSE
+//       SYSVOL 寫入成功但下游執行未觸發，右表（DeviceProcessEvents）無資料
+//       左表改為 DeviceFileEvents（路徑B），join key 改為 DeviceName 避免時間戳精確比對問題
+//       原規則 join key 為時間戳精確相等（幾乎不可能），已修正為 DeviceName + between 時間窗
 //============================================================================
-let GPOChanges = SecurityEvent
-    | where EventID in (5136, 5137)
-    | extend ObjectClass  = extract(@'<Data[^>]*Name="ObjectClass"[^>]*>([^<]+)</Data>', 1, EventData)
-    | extend SubjectUser  = extract(@'<Data[^>]*Name="SubjectUserName"[^>]*>([^<]+)</Data>', 1, EventData)
-    | extend ObjectDN     = extract(@'<Data[^>]*Name="ObjectDN"[^>]*>([^<]+)</Data>', 1, EventData)
-    | where ObjectClass == "groupPolicyContainer"
-    | where SubjectUser !endswith "$"
+let GPOChanges = DeviceFileEvents
+    | where DeviceName has "DC01"
+    | where FolderPath has "SYSVOL"
+    | where FolderPath has "Policies"
+    | where FileName in ("ScheduledTasks.xml", "scripts.ini", "GPT.INI")
+    | where ActionType in ("FileCreated", "FileModified")
+    | where InitiatingProcessFileName !in~ ("svchost.exe", "dfsr.exe", "dfsrs.exe")
     | where TimeGenerated > ago(6h)
-    | project GPOTime=TimeGenerated, Modifier=SubjectUser, ObjectDN, Computer;
+    | project GPOTime=Timestamp, FileName, DCName=DeviceName;
 GPOChanges
 | join kind=inner (
     DeviceProcessEvents
-    | where InitiatingProcessFileName in~ ("gpscript.exe", "svchost.exe", "cmd.exe", "powershell.exe")
-    | where ProcessCommandLine has_any ("startup", "scheduledtask", "test.bat", "gpo")
     | where TimeGenerated > ago(6h)
-    | project ExecTime=Timestamp, DeviceName, ProcessCommandLine
-) on $left.Computer == $right.DeviceName          // [Fix] 以主機名做 join key，而非時間相等
+    | where InitiatingProcessFileName in~ ("gpscript.exe", "cmd.exe", "powershell.exe")
+    | where ProcessCommandLine has_any ("startup", "scheduledtask", "test.bat")
+    | project ExecTime=Timestamp, ExecDevice=DeviceName, ProcessCommandLine
+) on $left.DCName == $right.ExecDevice
 | where ExecTime between (GPOTime .. (GPOTime + 6h))
-| project GPOTime, Modifier, ObjectDN, ExecTime, DeviceName, ProcessCommandLine
+| project GPOTime, FileName, ExecTime, ExecDevice, ProcessCommandLine
 | order by GPOTime desc

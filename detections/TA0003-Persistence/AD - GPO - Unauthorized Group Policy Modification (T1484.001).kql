@@ -1,23 +1,39 @@
 //============================================================================
-//Rule : AD - GPO - Unauthorized Group Policy Modification
+//Rule : AD - GPO - Unauthorized SYSVOL Modification (Path B, DeviceFileEvents)
 //MITRE : T1484.001 (Domain Policy Modification: Group Policy Modification)
-//Data Source : SecurityEvent , EventID : 5136/5137
-//Prerequisite : DC 啟用 "Audit Directory Service Changes (Success)"
-//Type : 偵測非授權帳號修改 groupPolicyContainer 物件——GPO 濫用持久化原語
-//Severity : HIGH - GPO 修改可對大量端點下發惡意設定
-//Known FP : 合法 GPO 管理（應以 GPO 管理員白名單排除）
-//Tuning : 維護授權 GPO 管理帳號清單；搭配下游執行關聯規則確認影響
-//Note : 本 lab 中以 admin NTLM hash 透過 impacket-smbclient 寫入 SYSVOL，
-//       包含 ScheduledTasks.xml、scripts.ini、test.bat、GPT.INI（Version=65539）；
-//       impacket 遠端寫入不觸發 5136；規則標待驗證，待改用 PowerShell New-GPO API 驗證
+//Data Source : DeviceFileEvents (MDE)
+//Prerequisite : DC01 已 MDE onboard
+//Type : 偵測攻擊者直接寫入 SYSVOL 的 GPO 注入行為——繞過 LDAP 不留 5136 的路徑 B
+//Severity : HIGH - 直接寫入 SYSVOL 是最隱蔽的 GPO 濫用方式
+//Known FP : 合法 AD 管理員用 GPMC 修改 GPO（InitiatingProcess=mmc.exe）
+//           可加白名單排除 mmc.exe，但需確認只有授權管理員使用
+//Tuning : 白名單排除授權 GPO 管理員的操作程序（mmc.exe）
+//         以及 DFS 複寫程序（dfsr.exe/dfsrs.exe）
+//Alert Rule : 建議排程 15 分鐘
+//Note : 本 lab 以 impacket smbclient 直接寫入 SYSVOL（路徑 B）
+//       ScheduledTasks.xml、scripts.ini、test.bat、GPT.INI 均成功寫入
+//       原規則針對路徑 A（LDAP → 5136）與攻擊情境不符，已改寫為路徑 B 偵測
+//       路徑 A（GPMC/PowerShell 修改 GPO）的偵測需用 5136 + ObjectClass=groupPolicyContainer
+//       兩條規則互補，覆蓋不同的攻擊路徑；此規則概念設計，待補跑 DeviceFileEvents 驗證
 //============================================================================
-SecurityEvent
-| where EventID in (5136, 5137)
-| extend AttrName = extract(@'<Data Name="AttributeLDAPDisplayName">([^<]+)</Data>', 1, tostring(EventData))
-| extend SubjectUser = extract(@'<Data Name="SubjectUserName">([^<]+)</Data>', 1, tostring(EventData))
-| extend ObjectDN = extract(@'<Data Name="ObjectDN">([^<]+)</Data>', 1, tostring(EventData))
-| extend ObjectClass = extract(@'<Data Name="ObjectClass">([^<]+)</Data>', 1, tostring(EventData))
-| where ObjectClass == "groupPolicyContainer"
-| where SubjectUser !endswith "$"
-| project TimeGenerated, SubjectUser, AttrName, ObjectDN, Computer
-| order by TimeGenerated desc
+DeviceFileEvents
+| where DeviceName has "DC01"
+| where FolderPath has "SYSVOL"
+| where FolderPath has "Policies"
+| where FileName in (
+    "ScheduledTasks.xml",
+    "scripts.ini",
+    "GPT.INI",
+    "Registry.pol",
+    "GptTmpl.inf"
+)
+| where ActionType in ("FileCreated", "FileModified")
+| where InitiatingProcessFileName !in~ (
+    "svchost.exe",
+    "dfsr.exe",
+    "dfsrs.exe",
+    "dfsvc.exe"
+)
+| project Timestamp, DeviceName, FolderPath, FileName,
+    ActionType, InitiatingProcessFileName, InitiatingProcessAccountName
+| order by Timestamp desc
