@@ -53,7 +53,7 @@
     "sentinel": [
       {
         "name": "AD - ADCS - ESC1 Certificate Request with Enrollee Supplied Subject",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20ADCS%20-%20ESC1%20Certificate%20Request%20with%20Enrollee%20Supplied%20Subject.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20ADCS%20-%20ESC1%20Certificate%20Request%20with%20Enrollee%20Supplied%20Subject%20%28T1649%29.kql",
         "tactic": "credential-access"
       }
     ]
@@ -168,7 +168,7 @@
     "sentinel": [
       {
         "name": "AD - SMB - Lateral Movement to File Server via Admin Share",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0008-Lateral-Movement/AD%20-%20SMB%20-%20Lateral%20Movement%20to%20File%20Server%20via%20Admin%20Share.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0008-Lateral-Movement/AD%20-%20SMB%20-%20Lateral%20Movement%20to%20File%20Server%20via%20Admin%20Share%20%28T1021.002%29.kql",
         "tactic": "lateral-movement"
       }
     ]
