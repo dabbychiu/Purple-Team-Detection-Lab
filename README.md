@@ -110,5 +110,5 @@ impacket LDAP channel 不觸發 5136 稽核（即使 SACL 已設）<br>
 1. **AI 輔助**：攻擊情境規劃採 AI 輔助；環境建置、攻擊執行與偵測驗證為手動實作。
 2. **人工介入的斷點**：Chain 1 的 WriteDACL→DCSync 由 labadmin 手動補齊；Chain 2 的 Initial Access 靠手動設定 Defender 排除路徑。
 3. **小規模環境**：僅一台 SRV-FILE、一台 DC，多主機行為規則（如 Pass-the-Ticket）無法驗證。
-4. **Chain 3 超過一半為概念規則**：Golden／Diamond／Sapphire Ticket 被 Server 2025 PAC 驗證擋下，RBCD 的 S4U 被擋，LSASS 傾印被 MDE 擋下。
-5. **規則可能仍有盲點**：例如部分規則名稱比實際邏輯寬（Large Outbound Transfer 僅比對程序名稱），或欄位格式尚未做負向對照；部分已記錄於各規則的 Known FP／Tuning 註解，其餘持續校準中。
+4. **Chain 3 因限制為概念規則**：Golden／Diamond／Sapphire Ticket 被 Server 2025 PAC 驗證擋下，RBCD 的 S4U 被擋，LSASS 傾印被 MDE 擋下。
+5. **規則可能仍有盲點**：例如部分規則名稱比實際邏輯寬;部分已記錄於各規則的 Known FP／Tuning 註解，其餘持續校準中。
