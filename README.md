@@ -3,7 +3,7 @@
 ## Overview
 
 
-以攻擊者視角驅動偵測設計，在真實 Azure 環境中完整執行攻擊鏈，產生可觀測的攻擊遙測資料，以此為基礎開發與驗證 Microsoft Sentinel 偵測規則。從 Chain 1/2 的攻擊執行層驗證，到 Chain 3 的偵測工程層校準（三層偵測方法論：工具層/原語層/行為層、門檻與欄位的真實環境校準）。
+以攻擊者視角驅動偵測設計，在真實 Azure 環境中實際執行三條攻擊鏈，產生可觀測的攻擊遙測資料，以此為基礎開發與驗證 Microsoft Sentinel 偵測規則。共 43 條 KQL 規則：29 條已於攻擊執行後在 Sentinel 命中驗證，14 條為概念設計或部分驗證（受 Server 2025 與 MDE 防護限制，詳見文末「驗證定義與已知限制」）。從 Chain 1/2 的攻擊執行層驗證，到 Chain 3 的偵測工程層校準（三層偵測方法論：工具層/原語層/行為層、門檻與欄位的真實環境校準）。
 
 攻擊情境的規劃採 AI 輔助，環境建置、攻擊執行與偵測驗證均為手動實作。
 
@@ -20,10 +20,12 @@
 日誌透過 AMA / DCR pipeline 集中送往 Microsoft Sentinel。
 
 ## 攻擊鏈總覽
+「已執行」代表攻擊鏈已跑完，不代表每個階段都有成功遙測；各階段狀態（已驗證／概念／被攔截）見各 chain 的 flow.md。
+
 | Chain | 攻擊情境 | 狀態 |
 |-------|---------|------|
-| Chain 1 | DMZ Webshell → LDAP 枚舉 → Kerberoasting → WriteDACL → DCSync | ✅ 完成 |
-| Chain 2 | ClickFix 釣魚 → Sliver C2 → ADCS ESC1 → 橫向 SRV-FILE → 勒索 | ✅ 完成 |
+| Chain 1 | DMZ Webshell → LDAP 枚舉 → Kerberoasting → WriteDACL → DCSync | ✅ 已執行 |
+| Chain 2 | ClickFix 釣魚 → Sliver C2 → ADCS ESC1 → 橫向 SRV-FILE → 勒索 | ✅ 已執行 |
 | Chain 3	| Kerberos 票證濫用 → 憑證竊取 → 票證鍛造 → 委派濫用 → 持久化 |	 ✅ 完成|
 
 ### chain 1 特色：Web-to-AD 完整接管鏈
@@ -33,7 +35,7 @@
 |攻擊階段	|偵測依據	|備註|
 |---------|---------|---|
 |Kerberoasting	|4769 TGS 請求|	服務帳號索票模式|
-|WriteDACL	|4662 / 5136 DACL 修改 |	ACL 濫用寫入|
+|WriteDACL	|4662（AccessMask 0x40000，DACL 修改）|	ACL 濫用寫入；本規則僅用 4662，未用 5136|
 |DCSync	|4662 replication GUID (DS-Replication-Get-Changes)	|網域接管指標|
 
 **誠實記錄的斷點： impacket-dacledit 透過 svc_backup 自我提權在 LDAP 層失敗，<br>
@@ -44,7 +46,7 @@ WriteDACL → DCSync 的因果鏈改由 labadmin 手動完成。<br>**
 ClickFix 社交工程入口，經 Sliver C2 與 LOLBins，到 ADCS ESC1 憑證濫用與橫向勒索。
 
 偵測面因此從純 AD 事件擴展到 EDR 遙測(MDE)、C2 行為與憑證簽發事件，<br>
-13 條 Sentinel KQL 規則全部驗證。<br>
+13 條 Sentinel KQL 規則中 12 條已驗證，1 條（PowerShell Run Dialog）為概念設計。<br>
 
 |攻擊階段	|偵測依據	|備註|
 |---------|---------|---|
@@ -70,6 +72,7 @@ RC4 假設在 Server 2025 AES 強制環境失效（KDC_ERR_ETYPE_NOSUPP）<br>
 impacket LDAP channel 不觸發 5136 稽核（即使 SACL 已設）<br>
 
 ## 偵測工程校準（Detection Engineering Calibration）
+（以下為被推翻的三個典型；另有 impacket LDAP 寫入不觸發 5136，根因尚未確認。）
 
 每條規則在真實遙測上被驗證前都帶著假設，以下是本 lab 中被推翻的三個典型：
 
@@ -89,3 +92,23 @@ impacket LDAP channel 不觸發 5136 稽核（即使 SACL 已設）<br>
 完整的 MITRE ATT&CK 覆蓋率矩陣（互動版）：<br>
 👉 **https://dabbychiu.github.io/Purple-Team-Detection-Lab/** <br>
 黃色代表已有偵測覆蓋，點擊任一技術可展開對應的 Sentinel KQL規則。
+
+## 驗證定義與已知限制
+
+**「驗證」的定義**：攻擊實際執行，且對應的 Sentinel KQL 規則命中。不包含負向對照（正常行為不告警）、誤報率或規模測試。
+
+| Chain | 規則數 | 已驗證 | 概念設計／部分驗證 |
+|---|---|---|---|
+| Chain 1 | 8 | 8（其中 RC4 規則在 Server 2025 環境已失效） | 0 |
+| Chain 2 | 13 | 12 | 1 |
+| Chain 3 | 22 | 9 | 13 |
+| 合計 | 43 | 29 | 14 |
+
+（DCSync 規則為三條攻擊鏈共用，只計入 Chain 1。）
+
+**已知限制**
+1. **AI 輔助**：攻擊情境規劃採 AI 輔助；環境建置、攻擊執行與偵測驗證為手動實作。
+2. **人工介入的斷點**：Chain 1 的 WriteDACL→DCSync 由 labadmin 手動補齊；Chain 2 的 Initial Access 靠手動設定 Defender 排除路徑。
+3. **小規模環境**：僅一台 SRV-FILE、一台 DC，多主機行為規則（如 Pass-the-Ticket）無法驗證。
+4. **Chain 3 超過一半為概念規則**：Golden／Diamond／Sapphire Ticket 被 Server 2025 PAC 驗證擋下，RBCD 的 S4U 被擋，LSASS 傾印被 MDE 擋下。
+5. **規則可能仍有盲點**：例如部分規則名稱比實際邏輯寬（Large Outbound Transfer 僅比對程序名稱），或欄位格式尚未做負向對照；部分已記錄於各規則的 Known FP／Tuning 註解，其餘持續校準中。
