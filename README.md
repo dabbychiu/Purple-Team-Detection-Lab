@@ -3,7 +3,7 @@
 ## Overview
 
 
-以攻擊者視角驅動偵測設計，在真實 Azure 環境中實際執行三條攻擊鏈，產生可觀測的攻擊遙測資料，以此為基礎開發與驗證 Microsoft Sentinel 偵測規則。共 43 條 KQL 規則：29 條已於攻擊執行後在 Sentinel 命中驗證，14 條為概念設計或部分驗證（受 Server 2025 與 MDE 防護限制，詳見文末「驗證定義與已知限制」）。從 Chain 1/2 的攻擊執行層驗證，到 Chain 3 的偵測工程層校準（三層偵測方法論：工具層/原語層/行為層、門檻與欄位的真實環境校準）。
+以攻擊者視角驅動偵測設計，在真實 Azure 環境中實際執行三條攻擊鏈，產生可觀測的攻擊遙測資料，以此為基礎開發與驗證 Microsoft Sentinel 偵測規則。共 36 條 KQL 規則：28 條已於攻擊執行後在 Sentinel 命中驗證，8 條待驗證（攻擊條件已具備、尚未補跑，詳見文末「待驗證規則」）。2026-11 規則審查移除了 7 條無法驗證或邏輯有根本缺陷的規則，並修正其餘規則的已知問題（見「規則審查紀錄」與 [`CHANGELOG.md`](CHANGELOG.md)）。從 Chain 1/2 的攻擊執行層驗證，到 Chain 3 的偵測工程層校準（三層偵測方法論：工具層/原語層/行為層、門檻與欄位的真實環境校準）。
 
 攻擊情境的規劃採 AI 輔助，環境建置、攻擊執行與偵測驗證均為手動實作。
 
@@ -26,7 +26,7 @@
 |-------|---------|------|
 | Chain 1 | DMZ Webshell → LDAP 枚舉 → Kerberoasting → WriteDACL → DCSync | ✅ 已執行 |
 | Chain 2 | ClickFix 釣魚 → Sliver C2 → ADCS ESC1 → 橫向 SRV-FILE → 勒索 | ✅ 已執行 |
-| Chain 3	| Kerberos 票證濫用 → 憑證竊取 → 票證鍛造 → 委派濫用 → 持久化 |	 ✅ 完成|
+| Chain 3	| Kerberos 票證濫用 → 憑證竊取 → 票證鍛造 → 委派濫用 → 持久化 |	 ✅ 已執行|
 
 ### chain 1 特色：Web-to-AD 完整接管鏈
 
@@ -46,7 +46,7 @@ WriteDACL → DCSync 的因果鏈改由 labadmin 手動完成。<br>**
 ClickFix 社交工程入口，經 Sliver C2 與 LOLBins，到 ADCS ESC1 憑證濫用與橫向勒索。
 
 偵測面因此從純 AD 事件擴展到 EDR 遙測(MDE)、C2 行為與憑證簽發事件，<br>
-13 條 Sentinel KQL 規則中 12 條已驗證，1 條（PowerShell Run Dialog）為概念設計。<br>
+13 條 Sentinel KQL 規則中 11 條已驗證，2 條待驗證（PowerShell Run Dialog；SMB Admin Share 規則改寫為 5140 後待重跑）。<br>
 
 |攻擊階段	|偵測依據	|備註|
 |---------|---------|---|
@@ -63,7 +63,7 @@ Chain 3 在既有的「攻擊得手 → 偵測驗證」模式上，進一步探�
 |-----|---------|-----------------|-----|
 |工具簽章層|	已知攻擊工具命令列特徵	|最低	|SharpHound 規則在 LOTL 面前失效|
 |原語層	|協定/API 本質行為（4662/4768/4769）	|中|	4662 ObjectType 枚舉、PreAuthType=0|
-|行為層|	跨事件因果落差	|最高	|索票無登入、TGS 無 AS-REQ、DCSync 後接票證活動|
+|行為層|	跨事件因果落差	|最高	|DCSync 後接票證活動、Silver Ticket（服務有登入但 DC 無索票）、低速 LDAP 偵察|
 
 Chain 3 的核心主題——每一個「規則寫出來」和「規則真的有效」之間的差距，都在真實遙測上被驗證：<br>
 ObjectType 門檻從 >=5 校準到 >=3（完整枚舉只產生 3 種）<br>
@@ -97,18 +97,20 @@ impacket LDAP channel 不觸發 5136 稽核（即使 SACL 已設）<br>
 
 **「驗證」的定義**：攻擊實際執行，且對應的 Sentinel KQL 規則命中。不包含負向對照（正常行為不告警）、誤報率或規模測試。
 
-| Chain | 規則數 | 已驗證 | 概念設計／部分驗證 |
+| Chain | 規則數 | 已驗證 | 待驗證 |
 |---|---|---|---|
-| Chain 1 | 8 | 8（其中 RC4 規則在 Server 2025 環境已失效） | 0 |
-| Chain 2 | 13 | 12 | 1 |
-| Chain 3 | 22 | 9 | 13 |
-| 合計 | 43 | 29 | 14 |
+| Chain 1 | 8 | 8（其中 RC4 規則在 Server 2025 環境已不再觸發） | 0 |
+| Chain 2 | 13 | 11 | 2 |
+| Chain 3 | 15 | 9 | 6 |
+| 合計 | 36 | 28 | 8 |
 
 （DCSync 規則為三條攻擊鏈共用，只計入 Chain 1。）
+
+
 
 **已知限制**
 1. **AI 輔助**：攻擊情境規劃採 AI 輔助；環境建置、攻擊執行與偵測驗證為手動實作。
 2. **人工介入的斷點**：Chain 1 的 WriteDACL→DCSync 由 labadmin 手動補齊；Chain 2 的 Initial Access 靠手動設定 Defender 排除路徑。
-3. **小規模環境**：僅一台 SRV-FILE、一台 DC，多主機行為規則（如 Pass-the-Ticket）無法驗證。
-4. **Chain 3 因限制為概念規則**：Golden／Diamond／Sapphire Ticket 被 Server 2025 PAC 驗證擋下，RBCD 的 S4U 被擋，LSASS 傾印被 MDE 擋下。
-5. **規則可能仍有盲點**：例如部分規則名稱比實際邏輯寬;部分已記錄於各規則的 Known FP／Tuning 註解，其餘持續校準中。
+3. **小規模環境**：僅一台 SRV-FILE、一台 DC，多主機行為規則無法驗證（原 Pass-the-Ticket 規則因此移除）。
+4. **環境防護擋下的攻擊**：Golden／Diamond／Sapphire Ticket 被 Server 2025 PAC 驗證擋下（相關規則已移除）；RBCD 的 S4U 被擋；LSASS 傾印被 MDE 擋下（LSASS 規則待驗證）。
+5. **驗證不含負向測試**：目前的「驗證」只證明攻擊會命中，尚未測試正常行為的誤報率；各規則的 Known FP／Tuning 註解記錄已知的誤報來源。
