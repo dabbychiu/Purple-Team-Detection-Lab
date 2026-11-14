@@ -9,6 +9,7 @@
 //Tuning : 排除已知合法 certutil 用途；關聯後續網路連線確認外部目的地
 //Note : 本 lab 中透過 Sliver C2 執行 mshta.exe 載入遠端 HTA，
 //       偵測訊號已驗證
+//Fix (2026-11) : UNC 路徑改用 contains 比對；has 以「詞」為單位，無法可靠比對 \\\\ 這種純符號字串
 //============================================================================
 DeviceProcessEvents
 | where FileName in~ (
@@ -25,10 +26,10 @@ DeviceProcessEvents
     "https://",
     "javascript:",
     "vbscript:",
-    "\\\\",
     "-decode",
     "-urlcache"
 )
+    or ProcessCommandLine contains @"\\"   // UNC 路徑（\\host\share）
 | project
     TimeGenerated,
     DeviceName,

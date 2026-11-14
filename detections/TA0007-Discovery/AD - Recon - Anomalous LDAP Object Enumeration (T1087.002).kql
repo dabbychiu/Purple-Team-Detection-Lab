@@ -1,0 +1,29 @@
+//============================================================================
+//Rule : AD - Recon - Anomalous LDAP Object Enumeration (Primitive Layer)
+//MITRE : T1087.002 (Account Discovery: Domain Account)
+//Data Source : SecurityEvent , EventID : 4662
+//Prerequisite : DC 啟用 "Audit Directory Service Access (Success)"，並於網域根物件設定讀取 SACL
+//Type : 偵測單一非機器帳號在時間窗內存取多種高價值目錄物件類別（工具無關）
+//Severity : MEDIUM - 偵察行為，需搭配後續階段關聯升級
+//Known FP : AD 管理工具（ADUC/RSAT）日常操作、資產盤點掃描、Azure AD Connect 同步
+//Tuning : 門檻 >=3 對應 user/group/computer 全枚舉（環境校準：完整偵察產生 3 種 ObjectType）
+//         建立已授權管理帳號白名單；AccessMask 0x10 為使用者 LDAP 屬性讀取（環境校準確認）
+//Note : 本 lab 中 CORP\Alice 使用 DirectorySearcher（.NET 內建，LOTL）枚舉三種物件類別，
+//       4662 產生，DistinctObjectTypes=3 命中，偵測訊號已驗證
+//       SharpHound 工具簽章層在此刻意未觸發，作為「工具替換失效工具層」的示範
+//============================================================================
+SecurityEvent
+| where EventID == 4662
+| where ObjectServer == "DS"
+| where AccessMask == "0x10"
+| where SubjectUserName !endswith "$"
+| where SubjectUserName != "-"
+| where SubjectAccount startswith "CORP\\"
+| summarize
+    DistinctObjectTypes = dcount(ObjectType),
+    ObjectSet = make_set(ObjectType, 20),
+    EventCount = count()
+    by SubjectAccount, Computer, bin(TimeGenerated, 15m)
+| where DistinctObjectTypes >= 3
+| project TimeGenerated, SubjectAccount, Computer, DistinctObjectTypes, ObjectSet, EventCount
+| order by TimeGenerated desc

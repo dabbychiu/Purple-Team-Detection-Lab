@@ -8,9 +8,10 @@
 //Known FP : 正常維護作業停止服務
 //Tuning : 關聯同一時段的 VSS 刪除和檔案大量修改事件
 //Note : 本 lab 中在 SRV-FILE 上執行 net stop VSS，偵測訊號已驗證
+//Fix (2026-11) : 加入 sc.exe（sc stop VSS 為同樣常見的寫法）
 //============================================================================
 DeviceProcessEvents
-| where FileName =~ "net.exe"
+| where FileName in~ ("net.exe", "sc.exe")
 | where ProcessCommandLine has "stop"
 | where ProcessCommandLine has_any (
     "VSS",

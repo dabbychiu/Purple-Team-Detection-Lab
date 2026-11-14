@@ -10,13 +10,16 @@
 //         關聯 RegistryValueData 確認是否有 Run Key 持久化
 //Note : 本 lab 中 demon.exe 位於 C:\Users\Public\，
 //       定期回連 172.188.32.246:443，偵測訊號已驗證
+//Fix (2026-11) : 1. KQL 的 != 有分大小寫，MDE 回報的是 OneDrive.exe，原本的排除條件不會生效，改為 !~
+//         2. RemoteIPType != "Private" 會包含 Loopback/Reserved，改為 == "Public"
+//Known Gap : 使用者層安裝的 Teams/Zoom/Chrome 等也位於 C:\Users\，正式環境需建立程式白名單
 //============================================================================
 DeviceNetworkEvents
 | where RemotePort == 443
 | where ActionType == "ConnectionSuccess"
-| where RemoteIPType != "Private"
+| where RemoteIPType == "Public"
 | where InitiatingProcessFolderPath matches regex @"(?i)c:\\users\\"
-| where InitiatingProcessFileName != "onedrive.exe"
+| where InitiatingProcessFileName !~ "onedrive.exe"
 | project
     TimeGenerated,
     DeviceName,

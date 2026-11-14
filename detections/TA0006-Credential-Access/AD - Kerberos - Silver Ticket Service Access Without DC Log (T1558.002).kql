@@ -1,0 +1,40 @@
+//============================================================================
+//Rule : AD - Kerberos - Silver Ticket Service Access Without DC Log
+//MITRE : T1558.002 (Silver Ticket)
+//Data Source : SecurityEvent，SRV-FILE 4624 + DC01 4769
+//Prerequisite : 目標服務主機（SRV-FILE）與 DC 皆納入 Sentinel 日誌收集，SRV-FILE AMA 已安裝
+//Type : 偵測目標服務有登入（4624）但 DC 無對應服務票發放（4769）——Silver Ticket 繞過 DC 的矛盾
+//Severity : CRITICAL - Silver Ticket 不經 DC，此「服務有存取、DC 無紀錄」矛盾是唯一指紋
+//Known FP : 票證快取續用——使用者用快取票重連服務，DC 不記新 4769，規則誤報
+//           縮短時間窗（30m）可降低快取票跨窗的機率
+//Tuning : 此規則設計為針對單一高價值目標主機的專用規則
+//         不建議移除 Computer filter 改成全主機掃描——4624 量過大會導致 timeout
+//         真實環境部署建議：針對每台高價值主機各建一條規則（SRV-FILE、HR-Server、Finance-DB）
+//         時間窗 ago(30m) 適合小規模環境；海量日誌環境建議縮短至 ago(15m)
+//Alert Rule : 建議排程 15 分鐘，與時間窗 ago(30m) 對齊
+//Note : 本 lab 以 cifs/SRV-FILE.corp.lab Silver Ticket 存取 C$/FinanceShare/HRShare
+//       SRV-FILE 4624（LogonType=3，Kerberos，SrcIp=10.0.5.4）有，DC 4769 無
+//       SRV-FILE AMA 於執行期間安裝後偵測訊號已驗證
+//       join 條件修正：右表加 ServiceName has "SRV-FILE" 確保比對的是對 SRV-FILE 索票的記錄
+//Fix (2026-11) : 4769 的 TargetUserName 是 user@DOMAIN，4624 是 user，原本直接 join 永遠配不到，
+//         導致所有正常登入都會被當成「DC 無紀錄」而告警。兩邊統一為小寫 + @ 前段後再 join
+//         （攻擊情境下 DC 本來就沒有 4769，修正不影響命中）
+//============================================================================
+let DCTickets = SecurityEvent
+    | where Computer has "DC01" and EventID == 4769
+    | where TimeGenerated > ago(30m)
+    | extend TargetUser = tolower(tostring(split(extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData)), "@")[0]))
+    | extend ServiceName = extract(@'<Data Name="ServiceName">([^<]+)</Data>', 1, tostring(EventData))
+    | where ServiceName has "SRV-FILE"
+    | project TgsTime=TimeGenerated, TargetUser, ServiceName;
+SecurityEvent
+| where Computer has "SRV-FILE" and EventID == 4624
+| where LogonType == 3
+| where AuthenticationPackageName == "Kerberos"
+| where TargetUserName !endswith "$"
+| where TimeGenerated > ago(30m)
+| extend TargetUserNorm = tolower(TargetUserName)
+| project LogonTime=TimeGenerated, TargetUserName, TargetUserNorm, Computer, IpAddress
+| join kind=leftanti DCTickets on $left.TargetUserNorm == $right.TargetUser
+| project LogonTime, TargetUserName, Computer, IpAddress
+| order by LogonTime desc

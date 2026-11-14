@@ -1,0 +1,28 @@
+//============================================================================
+//Rule : Endpoint - Defender - Malicious File Download Detected
+//MITRE : T1204.001 (User Execution: Malicious File)
+//Data Source : DeviceEvents (MDE)
+//Prerequisite : MDE onboarded, DeviceEvents connector enabled in Sentinel
+//Type : 偵測 Defender 攔截到的惡意檔案下載或執行
+//Severity : HIGH - 使用者被 ClickFix 誘導下載並執行惡意 payload
+//Known FP : 合法安全性測試工具被誤判
+//Tuning : 關聯後續 DeviceNetworkEvents 確認 C2 是否上線
+//Fix (2026-11) : 移除 AntivirusScanCompleted（掃描完成通知，不是偵測事件）；
+//         移除威脅名稱關鍵字（demon/sliver/trojan/malware）過濾——原寫法只會命中本 lab 的樣本，
+//         會漏掉 HackTool:/Ransom:/Backdoor: 等其他家族；改為全部 AntivirusDetection 並解析 ThreatName
+//============================================================================
+DeviceEvents
+| where ActionType == "AntivirusDetection"
+| extend Fields = parse_json(AdditionalFields)
+| extend ThreatName = tostring(Fields.ThreatName),
+         WasRemediated = tostring(Fields.WasRemediated)
+| project
+    TimeGenerated,
+    DeviceName,
+    InitiatingProcessAccountName,
+    FileName,
+    FolderPath,
+    ThreatName,
+    WasRemediated,
+    AdditionalFields
+| sort by TimeGenerated desc

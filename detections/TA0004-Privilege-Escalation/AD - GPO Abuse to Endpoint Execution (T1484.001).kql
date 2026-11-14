@@ -1,0 +1,44 @@
+//============================================================================
+//Rule : AD - GPO Abuse to Endpoint Execution (Cross-Source Correlation, Path B)
+//MITRE : T1484.001 (Domain or Tenant Policy Modification: Group Policy Modification)
+//Data Source : DeviceFileEvents (MDE) + DeviceProcessEvents (MDE)
+//Prerequisite : DC01 已 MDE onboard；受影響端點已 MDE onboard
+//Type : 關聯 GPO SYSVOL 寫入（路徑B）與「其他端點」上由 GPO 觸發的下游執行——證明 GPO 濫用實際生效
+//Severity : CRITICAL - GPO 變更導致端點執行是完整攻擊生效的鐵證
+//Known FP : 合法 GPO 部署腳本；以授權管理帳號與已知部署基線排除
+//Tuning : 調整關聯時間窗（6h）；GPO 套用到端點執行可能有延遲（預設背景重新整理 90–120 分鐘）
+//         Immediate Task 的 payload 命令列由攻擊者決定，可依 ScheduledTasks.xml 內容補充比對
+//Status : 待驗證——下游執行尚未在本 lab 觸發
+//Fix (2026-11) : 原 join 條件為 DCName == ExecDevice；GPO 寫在 DC 的 SYSVOL、執行發生在端點，
+//         兩者是不同主機，原寫法只會抓到 DC 本機上的執行，抓不到任何端點。
+//         改為以時間窗關聯（GPO 寫入後 6 小時內，非 DC 端點出現 gpscript.exe 子程序或 SYSVOL 路徑執行）。
+//         另移除 lab 專用關鍵字（test.bat）
+//Note : 下游執行未觸發的較可能原因：路徑 B 只寫 SYSVOL，AD 端 groupPolicyContainer 物件的
+//       gPCMachineExtensionNames 與 versionNumber 沒有同步更新，用戶端判斷 GPO 未變更、不會處理新的 CSE。
+//       驗證時需改用會同時更新 AD 屬性與 SYSVOL 的方式（如 GPMC 或 SharpGPOAbuse / pyGPOAbuse）
+//============================================================================
+let GPOChanges = DeviceFileEvents
+    | where TimeGenerated > ago(12h)
+    | where DeviceName has "DC01"
+    | where FolderPath has "SYSVOL" and FolderPath has "Policies"
+    | where FileName in~ ("ScheduledTasks.xml", "scripts.ini", "GPT.INI")
+    | where ActionType in ("FileCreated", "FileModified")
+    | where InitiatingProcessFileName !in~ ("svchost.exe", "dfsr.exe", "dfsrs.exe")
+    | project GPOTime = Timestamp, GPOFile = FileName, GPOPath = FolderPath, DCName = DeviceName;
+let GPOExec = DeviceProcessEvents
+    | where TimeGenerated > ago(12h)
+    | where DeviceName !has "DC01"
+    | where InitiatingProcessFileName =~ "gpscript.exe"
+        or ProcessCommandLine contains @"\SYSVOL\"
+    | project ExecTime = Timestamp, ExecDevice = DeviceName, FileName, ProcessCommandLine, InitiatingProcessFileName;
+GPOChanges
+| extend JoinKey = 1
+| join kind=inner (GPOExec | extend JoinKey = 1) on JoinKey
+| where ExecTime between (GPOTime .. (GPOTime + 6h))
+| summarize
+    FirstExec = min(ExecTime),
+    DeviceCount = dcount(ExecDevice),
+    Devices = make_set(ExecDevice, 50),
+    Commands = make_set(ProcessCommandLine, 20)
+    by GPOTime, GPOFile, GPOPath, DCName
+| order by GPOTime desc

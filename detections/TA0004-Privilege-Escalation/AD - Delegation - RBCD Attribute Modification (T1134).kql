@@ -1,0 +1,47 @@
+//============================================================================
+//Rule : AD - Delegation - RBCD Attribute Modification
+//MITRE : T1134 (Access Token Manipulation)
+//        ※ RBCD 的 ATT&CK 對應各家不一（T1134 / T1098 / T1558），此處採 Sentinel 社群 RBCD 規則使用的 T1134
+//        ※ 原標 T1484.001（GPO 修改）與檔名 T1558.003（Kerberoasting）皆不符，已修正
+//Data Source : DeviceProcessEvents (MDE)
+//Prerequisite : 攻擊者落腳點主機已 MDE onboard
+//Type : 偵測對 msDS-AllowedToActOnBehalfOfOtherIdentity 屬性的寫入——RBCD 攻擊的核心指紋
+//Severity : HIGH - 一般使用者/低權限帳號不應修改 AD 委派屬性
+//Known FP : AD 管理員透過 PowerShell 合法設定委派（Set-ADComputer）、IDM 系統
+//Tuning : 加入已知合法管理帳號排除；限縮 InitiatingProcessAccountName 非 DA 帳號告警
+//Note : 本 lab 中 5136 稽核事件在 impacket LDAP channel 下不產生（Server 2025 環境限制）
+//       即使設了 SACL，impacket 走的 LDAP channel 不產生目錄服務變更稽核事件
+//       改以 DeviceProcessEvents 偵測工具層命令列特徵作為替代偵測面
+//       此規則為工具簽章層，偵測 impacket rbcd.py / PowerView Set-DomainRBCD 等工具行為
+//       若攻擊者改用自訂 LDAP client 靜默寫入，此規則無法命中——應搭配 5136 稽核（原語層）
+//       攻擊從 Kali 發起，Windows 端點 DeviceProcessEvents 無對應記錄
+//Status : 待驗證——可在 EMPLOYEE01 以 PowerView Set-DomainRBCD 或
+//         Set-ADComputer -PrincipalsAllowedToDelegateToAccount 寫入一次即可驗證
+//Fix (2026-11) : 加入 AD 模組的標準寫法 -PrincipalsAllowedToDelegateToAccount
+//         （此參數不會在命令列出現屬性名稱，原規則抓不到）
+//============================================================================
+DeviceProcessEvents
+| where TimeGenerated > ago(1d)
+| where (
+    // impacket rbcd.py
+    ProcessCommandLine has_all ("rbcd.py", "-action write")
+    // PowerView
+    or ProcessCommandLine has_all ("Set-DomainRBCD", "-Identity")
+    // PowerShell AD 模組
+    or ProcessCommandLine has_all ("Set-ADComputer", "msDS-AllowedToActOnBehalfOfOtherIdentity")
+    or ProcessCommandLine has "PrincipalsAllowedToDelegateToAccount"
+    // 通用：任何命令列含委派屬性名稱
+    or ProcessCommandLine has "msDS-AllowedToActOnBehalfOfOtherIdentity"
+)
+// 排除已知合法 AD 管理操作（部署時依環境填入）
+// | where InitiatingProcessAccountName !in ("da_admin", "svc_idm")
+| project
+    TimeGenerated,
+    DeviceName,
+    InitiatingProcessAccountName,
+    InitiatingProcessAccountDomain,
+    FileName,
+    ProcessCommandLine,
+    InitiatingProcessFileName,
+    InitiatingProcessCommandLine
+| order by TimeGenerated desc

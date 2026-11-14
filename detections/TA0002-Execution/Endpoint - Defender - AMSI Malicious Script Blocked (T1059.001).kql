@@ -1,0 +1,22 @@
+//============================================================================
+//Rule : Endpoint - Defender - AMSI Malicious Script Blocked
+//MITRE : T1059.001 (Command and Scripting Interpreter: PowerShell)
+//Data Source : DeviceEvents (MDE)
+//Prerequisite : MDE onboarded, AMSI enabled (預設開啟)
+//Type : 偵測 AMSI 在記憶體層阻擋的惡意 PowerShell 內容
+//Severity : HIGH - AMSI 成功阻擋 shellcode loader / bypass 嘗試
+//Known FP : 安全工具的誤報（如 PowerSploit 測試）
+//Tuning : 關聯 InitiatingProcessCommandLine 確認攻擊意圖
+//Note : 本 lab 中 MDE AMSI 成功阻擋多次 PowerShell shellcode loader，
+//       包含字串混淆、char array 混淆版本，偵測訊號已驗證
+//============================================================================
+DeviceEvents
+| where ActionType == "AmsiScriptDetection"
+| project
+    TimeGenerated,
+    DeviceName,
+    InitiatingProcessAccountName,
+    InitiatingProcessFileName,
+    InitiatingProcessCommandLine,
+    AdditionalFields
+| sort by TimeGenerated desc

@@ -1,0 +1,32 @@
+//============================================================================
+//Rule : Endpoint - PowerShell - Suspicious Command Execution via Run Dialog
+//MITRE : T1059.001 (Command and Scripting Interpreter: PowerShell)
+//Data Source : DeviceProcessEvents (MDE)
+//Prerequisite : MDE onboarded, DeviceProcessEvents connector enabled in Sentinel
+//Type : 偵測從 Run 對話框拉起的可疑 PowerShell（ClickFix 核心行為）
+//Severity : HIGH - 使用者被社交工程誘導在 Run 對話框執行惡意 PowerShell
+//Known FP : IT 人員手動執行 PowerShell 維運腳本
+//Tuning : 關聯父程序為 explorer.exe 且命令列含下載行為的組合
+//Status : 待驗證——本 lab 因 AMSI 阻擋未走標準 ClickFix 路徑；可在 EMPLOYEE01 的 Run 對話框執行
+//         含 IEX/DownloadString 的無害指令（下載純文字檔）即可驗證
+//Fix (2026-11) : 加入 pwsh.exe（PowerShell 7）
+//============================================================================
+DeviceProcessEvents
+| where FileName in~ ("powershell.exe", "pwsh.exe")
+| where InitiatingProcessFileName =~ "explorer.exe"
+| where ProcessCommandLine has_any (
+    "IEX",
+    "DownloadString",
+    "DownloadData",
+    "Invoke-WebRequest",
+    "hidden",
+    "bypass"
+)
+| project
+    TimeGenerated,
+    DeviceName,
+    InitiatingProcessAccountName,
+    FileName,
+    ProcessCommandLine,
+    InitiatingProcessFileName
+| sort by TimeGenerated desc

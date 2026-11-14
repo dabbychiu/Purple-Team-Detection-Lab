@@ -1,30 +1,34 @@
 //============================================================================
 //Rule : AD - SMB - Lateral Movement to File Server via Admin Share
 //MITRE : T1021.002 (Remote Services: SMB/Windows Admin Shares)
-//Data Source : SecurityEvent , EventID : 4624
-//Prerequisite : 啟用 "Audit Logon (Success)"
-//Type : 偵測使用 DA hash 橫向移動到檔案伺服器（Pass-the-Hash）
-//Severity : HIGH - 使用 DA 憑證橫向移動為高風險行為
-//Known FP : 合法 IT 管理員遠端管理（高 FP 率，需搭配白名單 Tuning）
-//Tuning : 加入已知合法來源 IP 白名單；限縮為 DA 等級帳號登入才告警；
-//         關聯前置的 DCSync 事件確認攻擊鏈，單獨命中不建議直接告警
-//Note : 本 lab 中使用 admin Kerberos TGT 以 smbclient.py 存取 SRV-FILE C$ 共享，
-//       偵測訊號已驗證；在真實企業環境需搭配白名單才能降低 FP
+//Data Source : SecurityEvent , EventID : 5140
+//Prerequisite : SRV-FILE 啟用 "Audit File Share (Success)"
+//Type : 偵測非機器帳號存取管理共用（C$ / ADMIN$）——SMB 橫向移動的核心指紋
+//Severity : HIGH - 一般使用者不應存取管理共用；以 DA 憑證存取 C$ 為典型橫向移動
+//Known FP : 合法 IT 管理員遠端管理、軟體派送 / 備份代理（以帳號與來源 IP 白名單排除）
+//Tuning : 加入已知合法管理帳號與來源 IP 白名單；關聯前置 DCSync / ESC1 事件確認攻擊鏈
+//Status : 待驗證——規則已改寫，需在 SRV-FILE 開啟 File Share 稽核後重跑 smbclient 存取 C$
+//Fix (2026-11) : 原規則只比對 4624 LogonType 3，SRV-FILE 是檔案伺服器，所有員工開
+//         FinanceShare / HRShare 都是 LogonType 3，等於「有人用檔案伺服器就告警」，
+//         沒有比對管理共用。改用 5140 的 ShareName 判斷 C$ / ADMIN$
+//Note : 原 4624 版本在 lab 命中，是因為 lab 中只有攻擊者在使用 SRV-FILE
+//       5140 只在建立共用連線時記錄一次，不會每次讀檔都產生
 //============================================================================
 SecurityEvent
-| where EventID == 4624
-| where LogonType == 3
+| where EventID == 5140
 | where Computer has "SRV-FILE"
-| where TargetUserName !endswith "$"
-| where TargetUserName != "ANONYMOUS LOGON"
-// Tuning：加入已知合法來源 IP 白名單
-// | where IpAddress !in ("10.0.x.x", "已知管理 IP")
+| extend Share = coalesce(
+    column_ifexists("ShareName", ""),
+    extract(@'<Data Name="ShareName">([^<]+)</Data>', 1, tostring(EventData)))
+| where Share matches regex @"(?i)\\(C|ADMIN)\$$"
+| where SubjectUserName !endswith "$"
+// Tuning：加入已知合法管理帳號 / 來源 IP 白名單
+// | where IpAddress !in ("10.0.x.x")
 | project
     TimeGenerated,
     Computer,
-    TargetUserName,
-    TargetDomainName,
+    SubjectUserName,
+    SubjectDomainName,
     IpAddress,
-    LogonType,
-    EventID
+    Share
 | sort by TimeGenerated desc

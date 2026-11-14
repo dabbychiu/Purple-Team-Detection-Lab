@@ -1,0 +1,29 @@
+//============================================================================
+//Rule : Endpoint - Network - rclone Connection to Non-Corporate Endpoint
+//MITRE : T1567.002 (Exfiltration Over Web Service: Exfiltration to Cloud Storage)
+//Data Source : DeviceNetworkEvents (MDE)
+//Prerequisite : MDE onboarded, DeviceNetworkEvents connector enabled in Sentinel
+//Type : 偵測 rclone 對外部（公網）端點建立連線（rclone → MinIO）——工具簽章層
+//Severity : HIGH - 機密資料外洩到攻擊者控制的 S3 端點
+//Known FP : 合法雲端備份服務（OneDrive、Azure Backup）
+//Tuning : 排除已知合法備份目的地；關聯前置的橫向移動事件確認攻擊鏈
+//Note : 本 lab 中 rclone.exe 從 employee01 存取 SRV-FILE 共享，
+//       外洩至 Kali MinIO（172.188.32.246:9000），模擬 double extortion 前置外洩
+//       實際執行：Kali smbclient 下載後 mc 上傳到 MinIO（因 alice 權限限制）
+//Fix (2026-11) : 原名稱「Large Outbound Transfer」與邏輯不符——MDE DeviceNetworkEvents 沒有傳輸量欄位，
+//         規則實際是「rclone 對外連線」，已改名；加入 RemoteIPType == "Public" 對應「非企業端點」
+//Limitation : rclone 改名後即失效（工具簽章層）；量的判斷需改用防火牆 / Proxy 日誌
+//============================================================================
+DeviceNetworkEvents
+| where InitiatingProcessFileName =~ "rclone.exe"
+| where RemoteIPType == "Public"
+| project
+    TimeGenerated,
+    DeviceName,
+    InitiatingProcessAccountName,
+    RemoteIP,
+    RemotePort,
+    InitiatingProcessFileName,
+    InitiatingProcessFolderPath,
+    InitiatingProcessCommandLine
+| sort by TimeGenerated desc

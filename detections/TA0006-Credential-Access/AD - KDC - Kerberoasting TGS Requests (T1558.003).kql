@@ -1,0 +1,37 @@
+//============================================================================
+//Rule : AD - KDC - Kerberoasting TGS Requests
+//MITRE : T1558.003 (Steal or Forge Kerberos Tickets: Kerberoasting)
+//Data Source : SecurityEvent , EventID : 4769
+//Prerequisite : DC 啟用 "Audit Kerberos Service Ticket Operations (Success)"
+//Type : 單一請求者短時間內大量請求「使用者帳號 SPN」的服務票證（索票量）
+//Severity : HIGH - 大量 TGS 請求為 Kerberoasting 核心行為特徵
+//Known FP : 掃描器 / 資產盤點工具 / 應用集中啟動
+//Tuning : 依環境調整 RequestCount 門檻；與 Multi-SPN 規則分工：本規則看「量」，Multi-SPN 看「廣度」（不同 SPN 數）
+//Fix (2026-11) : 1. 原本以 Account 分組；4769 的請求者在 TargetUserName，Account 不保證是請求者，
+//            可能把不同人的請求混成同一組。改為依請求者 + 來源 IP 分組
+//         2. 排除 krbtgt 與機器帳號服務（$ 結尾，密碼為隨機長字串，不是 Kerberoasting 目標）
+//         3. 4769 的 TargetUserName 為 user@DOMAIN 格式，先取 @ 前段再排除機器帳號
+//============================================================================
+SecurityEvent
+| where EventID == 4769
+| extend
+    ServiceName = extract(@'<Data[^>]*Name="ServiceName"[^>]*>([^<]+)</Data>', 1, tostring(EventData)),
+    Requester = tolower(tostring(split(extract(@'<Data Name="TargetUserName">([^<]+)</Data>', 1, tostring(EventData)), "@")[0])),
+    IpAddress = extract(@'<Data Name="IpAddress">([^<]+)</Data>', 1, tostring(EventData))
+| where ServiceName !startswith "krbtgt"
+| where ServiceName !endswith "$"
+| where Requester !endswith "$"
+| summarize
+    RequestCount = count(),
+    Services = make_set(ServiceName, 10),
+    Events = make_list(pack('Time', TimeGenerated, 'Service', ServiceName, 'IP', IpAddress), 20)
+    by Requester, IpAddress, bin(TimeGenerated, 5m)
+| where RequestCount >= 3
+| project
+    TimeGenerated,
+    Requester,
+    IpAddress,
+    RequestCount,
+    Services,
+    Events
+| sort by TimeGenerated desc

@@ -1,5 +1,5 @@
 //============================================================================
-//Rule : AD - ACL - GenericAll/DACL Grant on Container Object
+//Rule : AD - ACL - GenericAll DACL Grant on Container
 //MITRE : T1222 (File and Directory Permissions Modification)
 //Data Source : SecurityEvent , EventID : 5136
 //Prerequisite : DC 啟用 "Audit Directory Service Changes (Success)"，並對 OU/容器物件設 SACL
