@@ -14,7 +14,8 @@
 | IIS - w3wp - Network Discovery Command Execution | 4 | 攻擊者正在探索內網拓樸 |
 | IIS - w3wp - Credential Scanning via findstr | 5 | 攻擊者正在尋找明碼憑證 |
 | AD - LDAP - Enumeration Tool Execution | 7 | 攻擊者正在列舉網域帳號/SPN |
-| AD - KDC - Kerberoasting / RC4 Encrypted TGS | 8 | 攻擊者正在請求服務票證,準備離線破解 |
+| AD - KDC - Kerberoasting TGS Requests | 8 | 攻擊者正在大量請求服務票證,準備離線破解 |
+| AD - KDC - RC4 Encrypted TGS Request Detected | 8 | 服務票證以可離線破解的 RC4 加密請求 |
 | AD - DomainObject - WRITE_DAC Permission Modification | 9 | 攻擊者正在修改 AD 物件的 ACL |
 | AD - DomainObject - Directory Replication by Non-DC Account | 10 | 攻擊者正在執行 DCSync,竊取網域雜湊 |
  
@@ -80,7 +81,7 @@
  
 ### **Stage 7(LDAP 枚舉)**
  
-**告警含義**:GetADUsers、GetADComputers、GetUserSPNs 等 PowerShell cmdlet 或等效工具列舉了網域物件。攻擊者在獲取攻擊目標清單。
+**告警含義**:impacket 的 GetADUsers、GetADComputers、GetUserSPNs 或 ldapsearch 等工具列舉了網域物件。攻擊者在獲取攻擊目標清單。
  
 **處理流程**:
 1. 確認 `CommandLine` 是否包含 `GetUserSPNs` ——若有,**直接預期後續會有 Kerberoasting**
@@ -102,7 +103,7 @@
 2. 優先輪替這些服務帳號的密碼,並**長期改用 gMSA(Group Managed Service Account)** 取代人工管理密碼的服務帳號,徹底根除此攻擊面
 
 **升級判斷**:
-- Kerberoasting 涉及高權限服務帳號(如 KRBTGT、域管理員帳號對應的 SPN) → 直接升級至緊急
+- Kerberoasting 涉及高權限服務帳號(如綁定 SPN 的 Domain Admins 成員帳號) → 直接升級至緊急
 - 命中 RC4 加密 → 升級
 ---
  
@@ -137,7 +138,7 @@
  
 **處理流程(緊急模式)**:
 1. **立即停用觸發帳號**,並撤銷所有現有 session/票證
-2. **krbtgt 密碼輪替兩次**(間隔至少數小時,因 krbtgt 保留前一版雜湊,只轉一次不足以讓已竊取的雜湊失效)
+2. **krbtgt 密碼輪替兩次**(krbtgt 保留前一版雜湊,只轉一次不足以讓已竊取的雜湊失效;第二次需等第一次完成 AD 複寫,且間隔不短於 TGT 最長效期(預設 10 小時),否則會造成大量服務驗證失敗)
 3. 若 WriteDACL 的目標是網域根物件 → 移除異常新增的 ACE,確認 DACL 已回復基線
 4. **強制輪替所有高權限帳號密碼**,不限於單一帳號——雜湊外洩的影響範圍是整個目錄,需要系統性清消
 5. 檢查被 DCSync 複寫的範圍(是否針對單一帳號或整個目錄),決定後續輪替範圍和優先級

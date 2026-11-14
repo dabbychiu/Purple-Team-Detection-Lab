@@ -5,11 +5,12 @@
 
 ## 適用範圍
 
-本 Playbook 涵蓋 Chain 2 全部 13 條已驗證規則，依攻擊階段順序排列，從初始釣魚到勒索破壞。
+本 Playbook 涵蓋 Chain 2 的 13 條規則與共用的 DCSync 規則，依攻擊階段順序排列，從初始釣魚到勒索破壞。標示「待驗證」者尚未在本 lab 補跑。
 
 | 規則 | Stage | 意義 |
 |---|---|---|
 | Endpoint - Defender - Malicious File Download Detected | 1 | ClickFix 誘導使用者下載惡意 payload |
+| Endpoint - PowerShell - Suspicious Command Execution via Run Dialog（待驗證） | 1 | 使用者從 Run 對話框執行含下載行為的 PowerShell（ClickFix 本體） |
 | Endpoint - Defender - AMSI Malicious Script Blocked | 1 | AMSI 阻擋惡意 PowerShell 內容 |
 | Endpoint - Network - C2 Beacon from User Directory | 2 | Sliver C2 已上線，攻擊者建立持久控制通道 |
 | Endpoint - Registry - Run Key Persistence | 3 | 攻擊者植入 Run Key 實現持久化 |
@@ -18,8 +19,8 @@
 | AD - SharpHound - Enumeration Tool Execution | 4 | 攻擊者正在列舉 AD 環境，準備提權路徑 |
 | AD - ADCS - ESC1 Certificate Request with Enrollee Supplied Subject | 5 | 低權限帳號冒充高權限帳號申請憑證 |
 | AD - DomainObject - Directory Replication by Non-DC Account | 6 | 攻擊者執行 DCSync，竊取網域雜湊 |
-| AD - SMB - Lateral Movement to File Server via Admin Share | 7 | 攻擊者使用 DA 憑證橫向移動至檔案伺服器 |
-| Endpoint - Network - Large Outbound Transfer to Non-Corporate Endpoint | 8 | 機密資料外洩至攻擊者控制的雲端端點 |
+| AD - SMB - Lateral Movement to File Server via Admin Share（待驗證） | 7 | 非機器帳號存取檔案伺服器的管理共用（C$／ADMIN$） |
+| Endpoint - Network - rclone Connection to Non-Corporate Endpoint | 8 | rclone 對外部端點連線，機密資料可能外洩至攻擊者控制的雲端 |
 | Endpoint - VSS - Shadow Copy Deletion | 9 | 刪除備份還原點，準備勒索加密 |
 | Endpoint - Service - Backup and Database Service Stopped | 9 | 停用備份服務，確保加密過程不被干擾 |
 
@@ -41,7 +42,7 @@
 
 ### **Stage 1（ClickFix Initial Access）**
 
-**告警含義**：使用者被誘導執行惡意 PowerShell，或 Defender/AMSI 阻擋了惡意內容下載或執行。需區分三種子規則：AMSI 阻擋代表 MDE 成功防禦但攻擊者可能改換方式；Defender 偵測惡意下載代表 payload 嘗試落地；兩者都命中後若再出現 C2 Beacon，代表攻擊者已繞過防禦。
+**告警含義**：使用者被誘導執行惡意 PowerShell，或 Defender/AMSI 阻擋了惡意內容下載或執行。需區分三種子規則：Run 對話框執行可疑 PowerShell 代表使用者已照指示貼上指令；AMSI 阻擋代表 MDE 成功防禦但攻擊者可能改換方式；Defender 偵測惡意下載代表 payload 嘗試落地；兩者都命中後若再出現 C2 Beacon，代表攻擊者已繞過防禦。
 
 **初步分類**：
 1. 確認觸發來源是否為已知滲透測試主機
@@ -134,11 +135,11 @@
 
 ### **Stage 6（DCSync）**
 
-**告警含義**：非 DC 帳號對網域執行了複寫請求（AccessMask 0x40000，含 Replicating Directory Changes GUID）。這一步沒有模糊空間：命中等同整個網域雜湊（含 krbtgt）已被讀取，視為已入侵。
+**告警含義**：非 DC 帳號對網域執行了複寫請求（AccessMask 0x100，含 Replicating Directory Changes GUID）。這一步沒有模糊空間：命中等同整個網域雜湊（含 krbtgt）已被讀取，視為已入侵。
 
 **處理流程（緊急模式）**：
 1. **立即停用觸發帳號**，並撤銷所有現有 session/票證
-2. **krbtgt 密碼輪替兩次**（間隔至少數小時，因 krbtgt 保留前一版雜湊，只轉一次不足以讓已竊取的雜湊失效）
+2. **krbtgt 密碼輪替兩次**（krbtgt 保留前一版雜湊，只轉一次不足以讓已竊取的雜湊失效；第二次需等第一次完成 AD 複寫，且間隔不短於 TGT 最長效期（預設 10 小時），否則會造成大量服務驗證失敗）
 3. 吊銷 ESC1 所申請的憑證，並確認 CA 稽核紀錄中是否有其他異常申請
 4. **強制輪替所有高權限帳號密碼**，不限於單一帳號——雜湊外洩的影響範圍是整個目錄，需要系統性清消
 5. 確認 DCSync 複寫的範圍（是否針對單一帳號或整個目錄），決定後續輪替範圍
@@ -150,11 +151,11 @@
 
 ### **Stage 7（橫向移動 SRV-FILE）**
 
-**告警含義**：DA 帳號（或使用 DA hash 的帳號）透過 SMB Type 3 登入至檔案伺服器，攻擊者正在存取共享資料。
+**告警含義**：非機器帳號存取檔案伺服器的管理共用（C$／ADMIN$，5140），攻擊者正以管理權限橫向進入檔案伺服器。
 
 **初步分類**：
-1. 確認登入來源 IP 是否為已知企業端點
-2. 確認登入帳號是否為已知合法管理員帳號（此規則 FP 率偏高，需搭配白名單 Tuning）
+1. 確認來源 IP 是否為已知管理工作站
+2. 確認帳號是否為已知合法管理員帳號（一般使用者不應存取管理共用）
 
 **處理流程**：
 1. 確認 SRV-FILE 上的共享資料是否有異常存取（大量讀取、異常時段）
@@ -238,7 +239,7 @@
 | IT 人員手動執行 PowerShell 維運腳本 | Stage 1 | 建立已授權測試主機/帳號清單 |
 | 授權滲透測試主機執行 SharpHound | Stage 4 | 建立已授權測試主機清單 |
 | IT 管理員合法代發憑證（Requester ≠ Principal Name 的合法情境） | Stage 5 | 建立已授權代發流程白名單，確認申請流程是否合規 |
-| 合法 IT 管理員遠端管理 SRV-FILE | Stage 7 | 建立已知合法來源 IP 白名單；單獨命中不建議直接告警，需關聯 DCSync 事件 |
+| 合法 IT 管理員以 C$／ADMIN$ 遠端管理 SRV-FILE | Stage 7 | 建立已知管理帳號與來源 IP 白名單；關聯 DCSync／ESC1 事件判斷是否為攻擊鏈 |
 | rclone 合法用於備份至雲端 | Stage 8 | 確認目的地是否為企業授權的雲端端點 |
 | 合法備份軟體的 VSS 管理操作 | Stage 9 | 建立已知合法備份工具白名單 |
 
@@ -254,9 +255,9 @@
 | 1（ClickFix） | 高 | 確認 payload 是否已落地執行，移除 Exclusion Path | Defender 告警內容、AMSI 偵測欄位 |
 | 2（C2） | **最高** | 隔離端點，封鎖 C2 IP | RemoteIP、InitiatingProcessFolderPath |
 | 3（持久化/LOLBin） | 高 | 移除 Run Key、封鎖 LOLBin 目的地 | RegistryValueData、mshta CommandLine |
-| 4（SharpHound） | 高 | 主動審查 ADCS 範本設定 | FileName、ProcessCommandLine |
+| 4（SharpHound） | 高 | 主動審查 ADCS 範本設定 | CommandLine、ParentProcessName（4688） |
 | 5（ESC1） | **最高** | 吊銷憑證、關閉漏洞範本 Enroll 權限 | Requester vs PrincipalName（4887） |
 | 6（DCSync） | **最高** | 停用帳號 + krbtgt 輪替兩次 | 複寫範圍 + Properties GUID |
-| 7（橫向移動） | **最高** | 隔離 SRV-FILE，確認存取範圍 | IpAddress、TargetUserName（4624） |
+| 7（橫向移動） | **最高** | 隔離 SRV-FILE，確認存取範圍 | IpAddress、SubjectUserName、ShareName（5140） |
 | 8（外洩） | **最高** | 封鎖目的地 IP、啟動通報流程 | rclone CommandLine、RemoteIP |
 | 9（勒索破壞） | **最高** | 隔離受影響主機、確認備份可用性 | vssadmin CommandLine、服務停用記錄 |

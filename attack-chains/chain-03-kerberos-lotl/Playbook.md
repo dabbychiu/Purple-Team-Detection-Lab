@@ -7,7 +7,7 @@
 
 ## 適用範圍
 
-本 Playbook 涵蓋 Chain 3 全部已驗證規則，依攻擊階段順序排列。
+本 Playbook 涵蓋 Chain 3 的全部 15 條規則與共用的 DCSync 規則，依攻擊階段順序排列。標示「待驗證」者尚未在本 lab 補跑。
 
 | 規則 | Stage | 意義 |
 |---|---|---|
@@ -16,18 +16,17 @@
 | AD - KDC - AS-REP Roasting Pre-Auth Disabled | 2 | 無預先驗證帳號被索取 TGT，可離線破解 |
 | AD - KDC - AS-REP Roasting Bulk Harvesting | 2 | 同源批次對多帳號 AS-REP 收割，確認系統性攻擊 |
 | AD - KDC - Kerberoasting Multi-SPN Harvesting | 3 | 批次索取多個服務票，正在收割可破解 hash |
-| AD - KDC - Kerberoast Ticket Without Logon | 3 | 票索了但不用，確認票被拿去離線破解 |
-| AD - gMSA - Unauthorized ManagedPassword Attribute Access | 4b | 非授權帳號嘗試讀取 gMSA 密碼，替代憑證竊取路徑 |
+| Endpoint - LSASS - Suspicious Process Access（待驗證） | 4a | 非系統程序對 lsass.exe 開啟 handle，記憶體憑證竊取前置 |
+| Endpoint - LSASS - Credential Dump via comsvcs MiniDump（待驗證） | 4a | rundll32 呼叫 comsvcs MiniDump 傾印 LSASS |
+| AD - gMSA - Unauthorized ManagedPassword Attribute Access（待驗證） | 4b | 非授權帳號嘗試讀取 gMSA 密碼，替代憑證竊取路徑 |
 | AD - DomainObject - Directory Replication by Non-DC Account | 5 | DCSync，網域 hash 全數外洩 |
 | AD - DCSync Followed by Anomalous KRBTGT Activity | 5 | DCSync 後緊接票證活動，確認攻擊鏈推進 |
-| AD - Kerberos - Golden Ticket Attempt Rejected | 6a | 偽造票被 DC PAC 驗證拒絕，攻擊嘗試留下痕跡 |
 | AD - Kerberos - Silver Ticket Service Access Without DC Log | 6b | 服務有存取但 DC 無 4769，Silver Ticket 繞過 DC |
-| AD - Pass-the-Ticket - Forged TGT Lateral Movement Behavioral | 6d | 同帳號同 IP 短時間打多台主機，票證橫向移動 |
-| AD - Delegation - RBCD Attribute Modification | 7a | msDS-AllowedToActOnBehalfOfOtherIdentity 被寫入 |
+| AD - Delegation - RBCD Attribute Modification（待驗證） | 7a | msDS-AllowedToActOnBehalfOfOtherIdentity 被寫入 |
 | AD - Coerced Authentication - DC Outbound SMB | 7b | DC 對非 DC 網段發起 SMB 連線，PetitPotam/PrinterBug 強制驗證指紋 |
 | AD - ACL - GenericAll DACL Grant on Container | 8 | OU/GPO 容器安全性描述元被修改，持久化前置 |
-| AD - GPO - Unauthorized Group Policy Modification | 8 | 非授權帳號修改 GPO 物件 |
-| AD - GPO Abuse to Endpoint Execution | 8 | GPO 變更後端點下游執行，確認 GPO 濫用生效 |
+| AD - GPO - Unauthorized Group Policy Modification（待驗證） | 8 | SYSVOL 中的 GPO 檔案被非 DFS 複寫程序直接寫入 |
+| AD - GPO Abuse to Endpoint Execution（待驗證） | 8 | GPO 變更後端點下游執行，確認 GPO 濫用生效 |
 
 **核心判斷原則**：
 - **Stage 1-3**：單條命中為中優先，同主機/帳號依序命中兩條以上直接視為攻擊鏈進行中
@@ -91,7 +90,7 @@
 
 ### **Stage 3（Kerberoasting）**
 
-**告警含義**：攻擊者對設有 SPN 的服務帳號批次索取服務票，票以服務帳號密碼加密，可離線破解。「索票無登入」行為層規則確認票被拿去破解而非實際使用。
+**告警含義**：攻擊者對設有 SPN 的服務帳號批次索取服務票，票以服務帳號密碼加密，可離線破解。Multi-SPN 規則看的是同一請求者短時間內索取「不同 SPN」的數量。
 
 **初步分類**：
 1. 確認被索取的服務帳號（ServiceName）是否為高權限帳號（Domain Admins 成員）
@@ -100,10 +99,22 @@
 **處理流程**：
 1. 確認被 Kerberoast 的服務帳號密碼強度，弱密碼帳號立即重設
 2. 評估服務帳號是否有不必要的高權限，考慮降權
-3. 若 Domain Admin 帳號（如 admin）的 SPN 被 Kerberoast → 立即升級，後果等同 DCSync
+3. 依 SPNSet 內容分流：cifs/host/http 多為正常服務存取；MSSQLSvc 等綁在使用者帳號上的 SPN → 升級調查
+4. 若 Domain Admin 帳號（如 admin）的 SPN 被 Kerberoast → 立即升級，後果等同 DCSync
 
 **升級判斷**：
-- 高權限帳號 SPN 被 Kerberoast + 「索票無登入」同時命中 → 升級，密碼可能已被破解
+- SPNSet 含高權限帳號的 SPN → 升級，視為密碼可能已被破解
+
+---
+
+### **Stage 4a（LSASS 存取／傾印，規則待驗證）**
+
+**告警含義**：非系統程序對 lsass.exe 開啟 handle，或 rundll32 以 comsvcs.dll MiniDump 傾印 LSASS。本 lab 中 MDE 已攔截傾印，但「嘗試」本身代表攻擊者已在端點取得執行能力並在找憑證。
+
+**處理流程**：
+1. 確認 MDE 是否已阻擋（DeviceEvents／SecurityAlert），未阻擋則假設該主機上登入過的帳號憑證全部外洩
+2. 隔離端點，列出近期在該主機登入過的帳號並輪替密碼
+3. 查詢同帳號是否改走替代路徑（Stage 4b gMSA 讀取）
 
 ---
 
@@ -131,7 +142,7 @@
 
 **處理流程（緊急模式）**：
 1. **立即停用觸發帳號**並撤銷所有現有 session
-2. **krbtgt 密碼輪替兩次**（間隔至少數小時，確保前一版 hash 失效）
+2. **krbtgt 密碼輪替兩次**（第二次需等第一次完成 AD 複寫，且間隔不短於 TGT 最長效期（預設 10 小時），確保前一版 hash 失效又不造成大量服務驗證失敗）
 3. 強制重設所有高權限帳號密碼
 4. 查詢 DCSync 後 2 小時內的票證活動（行為層規則）確認是否已進入票證鍛造階段
 5. 確認 DCSync 觸發帳號的權限來源（WriteDACL/GenericAll 的 ACL 鏈需一並清理）
@@ -145,17 +156,16 @@
 
 **告警含義**：
 
-- **Golden Ticket 嘗試被拒**（6a）：DC PAC 驗證拒絕偽造票，攻擊者曾嘗試但在此環境（Server 2025）失敗
 - **Silver Ticket 存取**（6b）：SRV-FILE 有 4624 登入但 DC 無對應 4769，票完全繞過 DC，是唯一的偵測視窗
-- **Pass-the-Ticket 橫向**（6d）：Kerberos 登入來自非預期 IP 或同帳號短時間打多台
+- Golden／Diamond／Sapphire Ticket（6a／6c）在本環境被 Server 2025 擋下，相關規則已移除；Pass-the-Ticket 多主機規則（6d）因 lab 規模無法驗證也已移除，橫向範圍改由人工查詢確認
 
 **初步分類（Silver Ticket 優先）**：
 1. 確認 SRV-FILE 的 4624 帳號（TargetUserName）是否與 DC 4769 對應
 2. 確認登入來源 IP（IpAddress）是否為已知授權主機
 
 **處理流程**：
-1. **Silver Ticket**：立即輪替 SRV-FILE 機器帳號密碼（`Reset-ComputerMachinePassword`），使現有 Silver Ticket 失效
-2. **Pass-the-Ticket**：確認哪些主機被存取，評估資料存取範圍
+1. **Silver Ticket**：立即輪替 SRV-FILE 機器帳號密碼（`Reset-ComputerMachinePassword`）；主機會保留前一版密碼，建議輪替兩次，使現有 Silver Ticket 完全失效
+2. **橫向範圍**：以同帳號、同來源 IP 查詢其他主機的 4624（LogonType 3、Kerberos），評估資料存取範圍
 3. 確認攻擊者是否已從 DCSync 取得機器帳號 hash（前置條件），若是則擴大輪替範圍
 
 **升級判斷**：
@@ -254,7 +264,6 @@
 | Azure AD Connect 同步帳號 | Stage 1、5 | 白名單同步帳號，AccessMask 0x100 事件例外 |
 | 監控代理程式規律 LDAP 查詢 | Stage 1 行為層 | 白名單服務帳號，行為層規則優先排除機器帳號 |
 | 合法服務帳號關閉預先驗證（業務需求） | Stage 2 | 建立已知 DoesNotRequirePreAuth 帳號清單 |
-| 合法 IT 管理員使用 runas 跨帳號 Kerberos 存取 | Stage 6d | 建立已知管理員來源 IP 白名單 |
 | 合法委派設定變更（由授權管理員執行） | Stage 7a | 白名單委派管理帳號 |
 | 合法 GPO 管理（Domain Admin 執行） | Stage 8 | 白名單 GPO 管理帳號清單 |
 
@@ -266,12 +275,11 @@
 |---|---|---|---|
 | 1（LDAP 偵察） | 中 | 確認帳號性質，查詢後續 Stage 2/3 | ObjectType 種類數、SubjectAccount |
 | 2（AS-REP Roasting） | 高 | 重設被索取帳號密碼，清點 PreAuth=False 帳號 | PreAuthType、TargetUser、SrcIp |
-| 3（Kerberoasting） | 高 | 確認服務帳號密碼強度，高權限帳號立即重設 | ServiceName、RoastedNoLogon |
+| 3（Kerberoasting） | 高 | 確認服務帳號密碼強度，高權限帳號立即重設 | SPNSet、DistinctSPN |
+| 4a（LSASS，待驗證） | 高 | 隔離端點，輪替該主機上登入過的帳號 | InitiatingProcess、MDE 阻擋紀錄 |
 | 4b（gMSA） | 中高 | 確認授權讀取清單，關聯其他 Stage | Subject、ObjectName |
 | 5（DCSync） | **最高** | 停用帳號、krbtgt 輪替兩次 | Properties GUID、SubjectAccount |
-| 6a（Golden Ticket 嘗試） | 高 | 確認環境 PAC 驗證設定，後續偵察 | Status 0x12、SrcIp |
 | 6b（Silver Ticket） | **最高** | 輪替 SRV-FILE 機器帳號密碼 | SRV-FILE 4624 vs DC 4769 矛盾 |
-| 6d（Pass-the-Ticket） | 高 | 確認橫向存取範圍，關聯 DCSync | IpAddress、多主機 TargetHosts |
 | 7a（RBCD 寫入） | 高 | 清除異常委派屬性，溯源寫入帳號 | ObjectDN、AttributeValue |
 | 7b（Unconstrained Coercion） | **最高** | 移除 TrustedForDelegation，輪替 DC 機器帳號密碼 | DC 對外 SMB、NTLMv2 hash |
 | 8（ACL/GPO 持久化） | **最高** | 移除異常 ACE/SYSVOL 惡意檔案 | nTSecurityDescriptor 變更、SYSVOL 內容 |

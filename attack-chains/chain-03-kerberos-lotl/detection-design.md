@@ -13,7 +13,7 @@ Chain 3 的核心主張是：同一個攻擊技術可以有三種不同深度的
 |---|---|---|---|---|
 | 工具簽章層 | 已知攻擊工具的命令列特徵（如 SharpHound.exe） | 最低 | 換工具、改名、LOTL | 最低 |
 | 原語層 | 協定/API 的本質行為（4662/4768/4769，工具無關） | 中 | 低速稀釋門檻、AES 降級規避 | 中 |
-| 行為層 | 跨事件的因果落差（索票無登入、DCSync 後接票證） | 最高 | 極難規避（需消除因果痕跡） | 中偏高（未調校時）→ 低（白名單後） |
+| 行為層 | 跨事件的因果落差（DCSync 後接票證、Silver Ticket 服務有登入但 DC 無索票） | 最高 | 極難規避（需消除因果痕跡） | 中偏高（未調校時）→ 低（白名單後） |
 
 ### 三層的正確用法：不是每個技術都硬湊三層
 
@@ -21,7 +21,7 @@ Chain 3 的核心主張是：同一個攻擊技術可以有三種不同深度的
 
 - **AS-REP Roasting**：`PreAuthType==0` 近乎確定異常，原語層一層就夠。行為層（批次收割）的價值不是補漏，而是把「設定疏失」升級成「確認系統性攻擊」。這是 Chain 3 裡「原語層即足夠」的範例。
 - **低速 LDAP 偵察**：4662 噪音大、單事件不可疑，**必須**靠行為層才能偵測。這是「原語層不夠、行為層非做不可」的範例。
-- **Golden Ticket**：攻擊在記憶體完成，無工具簽章，無乾淨原語事件（成功時不留 4768），**只能**靠行為層（TGS 無 AS-REQ 因果落差）或環境限制層（失敗的 KDC_ERR_TGT_REVOKED）。這是「為什麼必須有行為層」的最強論證。
+- **Golden Ticket**：攻擊在記憶體完成，無工具簽章，無乾淨原語事件（成功時不留 4768），理論上只能靠行為層（TGS 無 AS-REQ 因果落差）。但審查後發現這個因果落差在正常流量下也普遍存在——TGT 會快取 10 小時，使用者大部分時間都是「有 4769、無 4768」——所以這條規則無法上線，已移除。這是「行為層的因果假設也必須用正常流量檢驗」的反例。
 
 這種「層數應由偵測難度決定，不是機械地套三層」的判斷，是 detection engineering 和「貼規則範本」最大的差距。
 
@@ -71,7 +71,7 @@ Chain 1 RC4 規則（`TicketEncryptionType == "0x17"`）在這個環境**永遠�
 
 **校準**
 - Stage 2 AS-REP 規則：移除 `TicketEncryptionType` 限定，只靠 `PreAuthType == "0"` 作為核心指紋（因為 AS-REP Roasting 的本質是無預先驗證，加密類型是次要的）
-- Stage 3 Kerberoasting 規則：改看「索票量」（Multi-SPN 聚合）和「索票無登入」的行為指紋
+- Stage 3 Kerberoasting 規則：改看「同一請求者短時間內索取的不同 SPN 數」（Multi-SPN），不看加密類型
 
 **延伸洞察**
 這帶出一個更深的偵測工程判斷：**不要以加密類型為偵測依據，要以攻擊行為為偵測依據。** 加密類型是環境設定，可能隨政策改變；「批次對多個 SPN 索票」是攻擊意圖，換了加密類型也一樣存在。
@@ -172,9 +172,11 @@ Chain 3 遇到了四個「攻擊被環境擋住」的斷點，但這些斷點本
 
 ### Windows 11 GPO CSE——Immediate Task / Startup Script
 
-**現象**：ScheduledTasks.xml、scripts.ini/test.bat 均成功寫入 SYSVOL，GPT.INI 也更新了 CSE GUID，但 EMPLOYEE01 重開機後下游執行未觸發。GPO Operational Log 無 Scheduled Tasks CSE 處理記錄。
+**現象**：ScheduledTasks.xml、scripts.ini/test.bat 均成功寫入 SYSVOL，GPT.INI 版本號也已更新，但 EMPLOYEE01 重開機後下游執行未觸發。GPO Operational Log 無 Scheduled Tasks CSE 處理記錄。
 
-**偵測含義**：GPO 的偵測重點在「寫入端」（5136 GPO 物件變更 + SYSVOL 異常檔案）而非「下游執行端」（端點程序啟動），因為下游執行在現代 Windows 11 上受到更嚴格的 CSE 觸發限制。5136 的 impacket LDAP channel 問題同樣出現，根本原因與 RBCD 相同。
+**較可能的原因**：用戶端決定要執行哪些 CSE，看的是 AD 端 groupPolicyContainer 物件的 gPCMachineExtensionNames 屬性與 versionNumber，而不是 SYSVOL 裡的檔案。路徑B 只透過 SMB 寫 SYSVOL，AD 端屬性沒有同步更新，用戶端不會處理新的 Scheduled Tasks CSE。原本歸因於「Windows 11 CSE 觸發條件較嚴格」的說法並不精確。
+
+**偵測含義**：GPO 的偵測重點仍在「寫入端」（5136 GPO 物件變更 + SYSVOL 異常檔案）。若攻擊者同時更新 AD 屬性（如 SharpGPOAbuse／pyGPOAbuse），下游執行就會發生，GPO Abuse to Endpoint Execution 規則才有機會驗證。5136 的 impacket LDAP channel 問題同樣出現，根本原因與 RBCD 相同。
 
 ---
 
@@ -182,7 +184,7 @@ Chain 3 遇到了四個「攻擊被環境擋住」的斷點，但這些斷點本
 
 | 票種 | 偵測邏輯 | 難度 | 此環境可驗證 |
 |---|---|---|---|
-| Golden Ticket | TGS 無 AS-REQ 因果缺失 | 中 | 🔵 攻擊被擋，無成功遙測 |
+| Golden Ticket | TGS 無 AS-REQ 因果缺失 | 中（理論）；實務上受 TGT 快取影響誤報過高 | 🔵 攻擊被擋，規則已移除 |
 | Silver Ticket | 服務有 4624 但 DC 無 4769 | 低（一旦找到盲區） | ✅ 驗證通過 |
 | Diamond Ticket | AS-REQ 帳號 ≠ TGS 帳號（同來源 IP） | 高 | 🔵 同 Golden，被擋 |
 | Sapphire Ticket | S4U Transited Services 非空 + 高權帳號 | 最高 | 🔵 同上 |
@@ -211,5 +213,28 @@ Chain 3 執行過程中，有一個隱性的發現值得記錄：**規則會隨�
 | 1 | 帳號 filter | `!endswith "$"` | `!endswith "$" + startswith "CORP\\"` |
 | 2/3 | 加密類型假設 | `TicketEncryptionType == "0x17"` | 移除限定，靠 PreAuthType/行為 |
 | 2/3 | 欄位解析方式 | 直接用欄位名 | `extract()` 從 EventData XML |
-| 5 | DCSync AccessMask | `0x40000`（通用文件） | `0x100`（環境實測） |
+| 5 | DCSync AccessMask | `0x40000`（誤用 WRITE_DAC 的值） | `0x100`（Control Access，擴充權限的標準值，環境實測確認） |
 | 7b | 強制驗證偵測資料源 | SecurityEvent 4769 | MDE DeviceNetworkEvents（DC 對外 SMB） |
+| 3 | Multi-SPN 計算方式 | `count()`（同 SPN 重複也算） | `dcount(ServiceName) >= 3` |
+| 6b | 帳號比對 | 直接比對 4769 與 4624 帳號 | 統一為小寫 + `@` 前段後再 join |
+
+---
+
+## 七、規則審查：寫得出來 ≠ 跑得出正確結果（2026-11）
+
+前面的校準案例都是「攻擊跑完之後才發現假設錯了」。2026-11 對全部 43 條規則做了一次靜態審查，發現另一類問題：**規則在 lab 裡命中，或是看起來邏輯通順，但本身就跑不出正確結果。** 審查後移除 7 條、修正 20 條的邏輯或對應，剩下 36 條。
+
+| 問題類型 | 案例 | 教訓 |
+|---|---|---|
+| 欄位根本不存在 | Anomalous Ticket Lifetime 讀取 4769 的 StartTime／EndTime——這兩個欄位不在 4769 裡 | 寫規則前先確認事件真的有這個欄位，不是「DCR 沒解析」 |
+| 狀態碼對錯 | Golden Ticket Attempt Rejected 用 0x12，那是 KDC_ERR_CLIENT_REVOKED（帳號停用／鎖定），TGT 撤銷是 0x14 | 錯誤碼要查官方對照表，不能憑名稱猜 |
+| 跨事件帳號格式不一致 | 4769 的 TargetUserName 是 `user@DOMAIN`，4624／4672／4768 是 `user`；leftanti join 變成全部告警，inner join 變成永不觸發 | 任何跨事件 join 之前，先把兩邊的 key 正規化 |
+| 遙測不涵蓋該行為 | DPAPI 規則想偵測 masterkey 被讀取，但 DeviceFileEvents 不記錄讀取 | 先確認資料來源「看得到」這個動作 |
+| join 錯主機 | GPO Abuse 規則用 DC 名稱 join 端點名稱 | 想清楚兩個事件分別發生在哪台主機 |
+| 名稱與邏輯不符 | SMB「Admin Share」規則只看 4624；rclone「Large Transfer」沒有量的判斷；Multi-SPN 用 count() | 規則名稱是對分析師的承諾，邏輯要做到名稱說的事 |
+| 排除條件靜默失效 | C2 規則的 `!= "onedrive.exe"` 有分大小寫；LSASS 規則排除整個 System32 | 排除條件也要測——它失效時不會報錯 |
+| 只做正向驗證 | Silver Ticket 規則在攻擊時一定命中，但格式不一致時正常登入也會命中 | 「攻擊會命中」不等於「規則正確」，需要負向對照 |
+| ATT&CK 戰術欄放錯 | 4 條規則的 tactic 與技術所屬戰術不符，在覆蓋率矩陣上根本不顯示 | 覆蓋率工具本身也要驗證 |
+
+**核心洞察**：前面的校準是「環境推翻假設」，這一節是「規則本身的錯誤」。兩者都說明同一件事——偵測規則需要被當成程式碼來測試，而不是寫完、命中一次就算完成。
+
