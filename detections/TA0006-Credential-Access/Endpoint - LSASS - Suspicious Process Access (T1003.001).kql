@@ -10,7 +10,7 @@
 //Note : Stage 4a comsvcs MiniDump 在 EMPLOYEE01/DC01 均被 MDE
 //       以 HackTool:Win32/DumpLsass.H 攔截（Event ID 1116/1117，Severity High）；
 //       MDE 工具簽章層有效展示，與 Stage 1 LOTL 讓工具層失效形成對比
-//Status : 待驗證——先查 Stage 4a 當時 DeviceEvents 是否有 OpenProcessApiCall 記錄
+//Status : 概念設計（未在 lab 驗證）——先查 Stage 4a 當時 DeviceEvents 是否有 OpenProcessApiCall 記錄
 //Fix (2026-11) : 原本把整個 \Windows\System32\ 資料夾排除，rundll32（comsvcs）、taskmgr 等 System32 內的
 //         LOLBin 傾印全部會漏掉；改為只排除具名的系統程序與 Defender 安裝路徑
 //============================================================================

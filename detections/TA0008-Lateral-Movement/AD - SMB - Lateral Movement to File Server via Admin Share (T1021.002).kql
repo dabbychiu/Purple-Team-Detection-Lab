@@ -7,7 +7,7 @@
 //Severity : HIGH - 一般使用者不應存取管理共用；以 DA 憑證存取 C$ 為典型橫向移動
 //Known FP : 合法 IT 管理員遠端管理、軟體派送 / 備份代理（以帳號與來源 IP 白名單排除）
 //Tuning : 加入已知合法管理帳號與來源 IP 白名單；關聯前置 DCSync / ESC1 事件確認攻擊鏈
-//Status : 待驗證——規則已改寫，需在 SRV-FILE 開啟 File Share 稽核後重跑 smbclient 存取 C$
+//Status : 概念設計（未在 lab 驗證）——規則已改寫，需在 SRV-FILE 開啟 File Share 稽核後重跑 smbclient 存取 C$
 //Fix (2026-11) : 原規則只比對 4624 LogonType 3，SRV-FILE 是檔案伺服器，所有員工開
 //         FinanceShare / HRShare 都是 LogonType 3，等於「有人用檔案伺服器就告警」，
 //         沒有比對管理共用。改用 5140 的 ShareName 判斷 C$ / ADMIN$

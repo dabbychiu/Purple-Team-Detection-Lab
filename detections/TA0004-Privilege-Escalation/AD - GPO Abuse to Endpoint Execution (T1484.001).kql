@@ -8,7 +8,7 @@
 //Known FP : 合法 GPO 部署腳本；以授權管理帳號與已知部署基線排除
 //Tuning : 調整關聯時間窗（6h）；GPO 套用到端點執行可能有延遲（預設背景重新整理 90–120 分鐘）
 //         Immediate Task 的 payload 命令列由攻擊者決定，可依 ScheduledTasks.xml 內容補充比對
-//Status : 待驗證——下游執行尚未在本 lab 觸發
+//Status : 概念設計（未在 lab 驗證）——下游執行尚未在本 lab 觸發
 //Fix (2026-11) : 原 join 條件為 DCName == ExecDevice；GPO 寫在 DC 的 SYSVOL、執行發生在端點，
 //         兩者是不同主機，原寫法只會抓到 DC 本機上的執行，抓不到任何端點。
 //         改為以時間窗關聯（GPO 寫入後 6 小時內，非 DC 端點出現 gpscript.exe 子程序或 SYSVOL 路徑執行）。

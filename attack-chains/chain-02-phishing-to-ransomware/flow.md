@@ -32,7 +32,7 @@ flowchart TD
 
 **圖例:**
 - 🟢 **已驗證**（綠色）— 攻擊執行 + Sentinel 命中 KQL 規則
-- 🟡 **待驗證**（黃色）— 攻擊已執行，規則改寫或尚未補跑，待重新驗證
+- 🟡 **部分**（黃色）— 攻擊已執行，原規則命中但已改寫，新版為概念設計
 - 🔘 **概念設計**（灰色虛線）— 攻擊成功，偵測邏輯待補
 - 🔵 **被攔截**（藍色）— EDR 阻擋攻擊
 
@@ -43,7 +43,7 @@ flowchart TD
 | 階段 | 技術 | 狀態 | 說明 | KQL 規則 |
 |---|---|---|---|---|
 | Stage 1 | T1204.001 - ClickFix 使用者執行 | 🔵 攔截 | MDE AMSI 阻擋 PowerShell shellcode loader；Defender 偵測 demon.exe 下載；最終透過 Exclusion Path 繞過 | Endpoint - Defender - Malicious File Download Detected (T1204.001) |
-| Stage 1 | T1059.001 - PowerShell 可疑執行 | 🟡 待驗證 | 標準 ClickFix 路徑（explorer.exe → powershell.exe）因 AMSI 阻擋未觸發，改用手動執行 | Endpoint - PowerShell - Suspicious Command Execution via Run Dialog (T1059.001) |
+| Stage 1 | T1059.001 - PowerShell 可疑執行 | 🔘 概念 | 標準 ClickFix 路徑（explorer.exe → powershell.exe）因 AMSI 阻擋未觸發，改用手動執行 | Endpoint - PowerShell - Suspicious Command Execution via Run Dialog (T1059.001) |
 | Stage 1 | T1059.001 - AMSI 偵測 | ✅ 驗證 | MDE AMSI 掃描並阻擋 shellcode loader 內容，偵測訊號已驗證 | Endpoint - Defender - AMSI Malicious Script Blocked (T1059.001) |
 | Stage 2 | T1071.001 - Sliver C2 上線 | ✅ 驗證 | demon.exe 從 C:\Users\Public\ 對外建立 HTTPS beacon 回連 172.188.32.246:443 | Endpoint - Network - C2 Beacon from User Directory (T1071.001) |
 | Stage 3 | T1547.001 - Registry Run Key 持久化 | ✅ 驗證 | 透過 C2 shell 寫入 HKCU Run Key，alice 登入自動執行 demon.exe | Endpoint - Registry - Run Key Persistence (T1547.001) |
@@ -52,7 +52,7 @@ flowchart TD
 | Stage 4 | T1087.002 - SharpHound AD 枚舉 | ✅ 驗證 | SharpHound 執行全域 AD 枚舉 | AD - SharpHound - Enumeration Tool Execution (T1087.002) |
 | Stage 5 | T1649 - ADCS ESC1 憑證申請 | ✅ 驗證 | alice 申請 SAN=admin@corp.lab 憑證，4887 事件 | AD - ADCS - ESC1 Certificate Request with Enrollee Supplied Subject (T1649) |
 | Stage 6 | T1003.006 - DCSync | ✅ 驗證 | 以 admin NT hash 執行 DCSync，取得全域憑證，4662 事件 | AD - DomainObject - Directory Replication by Non-DC Account (T1003.006) |
-| Stage 7 | T1021.002 - 橫向移動 SRV-FILE | 🟡 待驗證 | smbclient 使用 admin Kerberos TGT 存取 SRV-FILE C$，成功列舉 FinanceShare；原 4624 版規則命中，但它無法區分管理共用與一般共用，已改寫為 5140（C$/ADMIN$），待重跑 | AD - SMB - Lateral Movement to File Server via Admin Share (T1021.002) |
+| Stage 7 | T1021.002 - 橫向移動 SRV-FILE | 🟡 部分 | smbclient 使用 admin Kerberos TGT 存取 SRV-FILE C$，成功列舉 FinanceShare；原 4624 版規則命中，但它無法區分管理共用與一般共用，已改寫為 5140（C$/ADMIN$），新版為概念設計、未重跑 | AD - SMB - Lateral Movement to File Server via Admin Share (T1021.002) |
 | Stage 8 | T1567.002 - rclone 外洩 | ✅ 驗證 | rclone 嘗試連線至 MinIO，3 個檔案外洩至 stolen-data | Endpoint - Network - rclone Connection to Non-Corporate Endpoint (T1567.002) |
 | Stage 9 | T1490 - VSS 刪除 | ✅ 驗證 | vssadmin delete shadows 在 SRV-FILE 執行 | Endpoint - VSS - Shadow Copy Deletion (T1490) |
 | Stage 9 | T1489 - 服務停用 | ✅ 驗證 | net stop VSS 在 SRV-FILE 執行| Endpoint - Service - Backup and Database Service Stopped (T1489) |
@@ -61,9 +61,9 @@ flowchart TD
 
 以下階段目前無已驗證的 KQL 規則：
 
-**Stage 1（T1059.001 - PowerShell via Run Dialog）— 規則已寫好，待驗證**
+**Stage 1（T1059.001 - PowerShell via Run Dialog）— 規則為概念設計**
 
-缺口：MDE AMSI 成功阻擋標準 ClickFix PowerShell 載入方式（包含字串混淆、char array 混淆版本），標準執行路徑（explorer.exe → powershell.exe）在本 lab 環境中未觸發。若補齊環境，偵測邏輯如下：以 DeviceProcessEvents 監控 `FileName = powershell.exe` 且 `InitiatingProcessFileName = explorer.exe` 且 CommandLine 含 IEX/DownloadString 的組合——使用者從 Run 對話框直接執行含下載行為的 PowerShell，正常使用者幾乎不會觸發，FP 率極低。驗證方式：在 Run 對話框執行含 IEX/DownloadString 的無害指令（下載純文字檔，不會被 AMSI 擋）。
+缺口：MDE AMSI 成功阻擋標準 ClickFix PowerShell 載入方式（包含字串混淆、char array 混淆版本），標準執行路徑（explorer.exe → powershell.exe）在本 lab 環境中未觸發。若補齊環境，偵測邏輯如下：以 DeviceProcessEvents 監控 `FileName = powershell.exe` 且 `InitiatingProcessFileName = explorer.exe` 且 CommandLine 含 IEX/DownloadString 的組合——使用者從 Run 對話框直接執行含下載行為的 PowerShell，正常使用者幾乎不會觸發，FP 率極低。驗證方式（未執行）：在 Run 對話框執行含 IEX/DownloadString 的無害指令（下載純文字檔，不會被 AMSI 擋）。
 
 **T1486 - 副檔名修改（勒索加密）**
 

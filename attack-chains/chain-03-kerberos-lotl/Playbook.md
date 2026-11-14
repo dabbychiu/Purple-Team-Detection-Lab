@@ -7,7 +7,7 @@
 
 ## 適用範圍
 
-本 Playbook 涵蓋 Chain 3 的全部 15 條規則與共用的 DCSync 規則，依攻擊階段順序排列。標示「待驗證」者尚未在本 lab 補跑。
+本 Playbook 涵蓋 Chain 3 的全部 15 條規則與共用的 DCSync 規則，依攻擊階段順序排列。標示「概念設計」者未在本 lab 驗證。
 
 | 規則 | Stage | 意義 |
 |---|---|---|
@@ -16,17 +16,17 @@
 | AD - KDC - AS-REP Roasting Pre-Auth Disabled | 2 | 無預先驗證帳號被索取 TGT，可離線破解 |
 | AD - KDC - AS-REP Roasting Bulk Harvesting | 2 | 同源批次對多帳號 AS-REP 收割，確認系統性攻擊 |
 | AD - KDC - Kerberoasting Multi-SPN Harvesting | 3 | 批次索取多個服務票，正在收割可破解 hash |
-| Endpoint - LSASS - Suspicious Process Access（待驗證） | 4a | 非系統程序對 lsass.exe 開啟 handle，記憶體憑證竊取前置 |
-| Endpoint - LSASS - Credential Dump via comsvcs MiniDump（待驗證） | 4a | rundll32 呼叫 comsvcs MiniDump 傾印 LSASS |
-| AD - gMSA - Unauthorized ManagedPassword Attribute Access（待驗證） | 4b | 非授權帳號嘗試讀取 gMSA 密碼，替代憑證竊取路徑 |
+| Endpoint - LSASS - Suspicious Process Access（概念設計） | 4a | 非系統程序對 lsass.exe 開啟 handle，記憶體憑證竊取前置 |
+| Endpoint - LSASS - Credential Dump via comsvcs MiniDump（概念設計） | 4a | rundll32 呼叫 comsvcs MiniDump 傾印 LSASS |
+| AD - gMSA - Unauthorized ManagedPassword Attribute Access（概念設計） | 4b | 非授權帳號嘗試讀取 gMSA 密碼，替代憑證竊取路徑 |
 | AD - DomainObject - Directory Replication by Non-DC Account | 5 | DCSync，網域 hash 全數外洩 |
 | AD - DCSync Followed by Anomalous KRBTGT Activity | 5 | DCSync 後緊接票證活動，確認攻擊鏈推進 |
 | AD - Kerberos - Silver Ticket Service Access Without DC Log | 6b | 服務有存取但 DC 無 4769，Silver Ticket 繞過 DC |
-| AD - Delegation - RBCD Attribute Modification（待驗證） | 7a | msDS-AllowedToActOnBehalfOfOtherIdentity 被寫入 |
+| AD - Delegation - RBCD Attribute Modification（概念設計） | 7a | msDS-AllowedToActOnBehalfOfOtherIdentity 被寫入 |
 | AD - Coerced Authentication - DC Outbound SMB | 7b | DC 對非 DC 網段發起 SMB 連線，PetitPotam/PrinterBug 強制驗證指紋 |
 | AD - ACL - GenericAll DACL Grant on Container | 8 | OU/GPO 容器安全性描述元被修改，持久化前置 |
-| AD - GPO - Unauthorized Group Policy Modification（待驗證） | 8 | SYSVOL 中的 GPO 檔案被非 DFS 複寫程序直接寫入 |
-| AD - GPO Abuse to Endpoint Execution（待驗證） | 8 | GPO 變更後端點下游執行，確認 GPO 濫用生效 |
+| AD - GPO - Unauthorized Group Policy Modification（概念設計） | 8 | SYSVOL 中的 GPO 檔案被非 DFS 複寫程序直接寫入 |
+| AD - GPO Abuse to Endpoint Execution（概念設計） | 8 | GPO 變更後端點下游執行，確認 GPO 濫用生效 |
 
 **核心判斷原則**：
 - **Stage 1-3**：單條命中為中優先，同主機/帳號依序命中兩條以上直接視為攻擊鏈進行中
@@ -107,7 +107,7 @@
 
 ---
 
-### **Stage 4a（LSASS 存取／傾印，規則待驗證）**
+### **Stage 4a（LSASS 存取／傾印，規則為概念設計）**
 
 **告警含義**：非系統程序對 lsass.exe 開啟 handle，或 rundll32 以 comsvcs.dll MiniDump 傾印 LSASS。本 lab 中 MDE 已攔截傾印，但「嘗試」本身代表攻擊者已在端點取得執行能力並在找憑證。
 
@@ -276,7 +276,7 @@
 | 1（LDAP 偵察） | 中 | 確認帳號性質，查詢後續 Stage 2/3 | ObjectType 種類數、SubjectAccount |
 | 2（AS-REP Roasting） | 高 | 重設被索取帳號密碼，清點 PreAuth=False 帳號 | PreAuthType、TargetUser、SrcIp |
 | 3（Kerberoasting） | 高 | 確認服務帳號密碼強度，高權限帳號立即重設 | SPNSet、DistinctSPN |
-| 4a（LSASS，待驗證） | 高 | 隔離端點，輪替該主機上登入過的帳號 | InitiatingProcess、MDE 阻擋紀錄 |
+| 4a（LSASS，概念設計） | 高 | 隔離端點，輪替該主機上登入過的帳號 | InitiatingProcess、MDE 阻擋紀錄 |
 | 4b（gMSA） | 中高 | 確認授權讀取清單，關聯其他 Stage | Subject、ObjectName |
 | 5（DCSync） | **最高** | 停用帳號、krbtgt 輪替兩次 | Properties GUID、SubjectAccount |
 | 6b（Silver Ticket） | **最高** | 輪替 SRV-FILE 機器帳號密碼 | SRV-FILE 4624 vs DC 4769 矛盾 |

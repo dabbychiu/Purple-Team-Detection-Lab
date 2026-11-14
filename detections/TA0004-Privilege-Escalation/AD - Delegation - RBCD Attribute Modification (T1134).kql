@@ -15,7 +15,7 @@
 //       此規則為工具簽章層，偵測 impacket rbcd.py / PowerView Set-DomainRBCD 等工具行為
 //       若攻擊者改用自訂 LDAP client 靜默寫入，此規則無法命中——應搭配 5136 稽核（原語層）
 //       攻擊從 Kali 發起，Windows 端點 DeviceProcessEvents 無對應記錄
-//Status : 待驗證——可在 EMPLOYEE01 以 PowerView Set-DomainRBCD 或
+//Status : 概念設計（未在 lab 驗證）——可在 EMPLOYEE01 以 PowerView Set-DomainRBCD 或
 //         Set-ADComputer -PrincipalsAllowedToDelegateToAccount 寫入一次即可驗證
 //Fix (2026-11) : 加入 AD 模組的標準寫法 -PrincipalsAllowedToDelegateToAccount
 //         （此參數不會在命令列出現屬性名稱，原規則抓不到）

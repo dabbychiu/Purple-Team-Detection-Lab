@@ -5,12 +5,12 @@
 
 ## 適用範圍
 
-本 Playbook 涵蓋 Chain 2 的 13 條規則與共用的 DCSync 規則，依攻擊階段順序排列，從初始釣魚到勒索破壞。標示「待驗證」者尚未在本 lab 補跑。
+本 Playbook 涵蓋 Chain 2 的 13 條規則與共用的 DCSync 規則，依攻擊階段順序排列，從初始釣魚到勒索破壞。標示「概念設計」者未在本 lab 驗證。
 
 | 規則 | Stage | 意義 |
 |---|---|---|
 | Endpoint - Defender - Malicious File Download Detected | 1 | ClickFix 誘導使用者下載惡意 payload |
-| Endpoint - PowerShell - Suspicious Command Execution via Run Dialog（待驗證） | 1 | 使用者從 Run 對話框執行含下載行為的 PowerShell（ClickFix 本體） |
+| Endpoint - PowerShell - Suspicious Command Execution via Run Dialog（概念設計） | 1 | 使用者從 Run 對話框執行含下載行為的 PowerShell（ClickFix 本體） |
 | Endpoint - Defender - AMSI Malicious Script Blocked | 1 | AMSI 阻擋惡意 PowerShell 內容 |
 | Endpoint - Network - C2 Beacon from User Directory | 2 | Sliver C2 已上線，攻擊者建立持久控制通道 |
 | Endpoint - Registry - Run Key Persistence | 3 | 攻擊者植入 Run Key 實現持久化 |
@@ -19,7 +19,7 @@
 | AD - SharpHound - Enumeration Tool Execution | 4 | 攻擊者正在列舉 AD 環境，準備提權路徑 |
 | AD - ADCS - ESC1 Certificate Request with Enrollee Supplied Subject | 5 | 低權限帳號冒充高權限帳號申請憑證 |
 | AD - DomainObject - Directory Replication by Non-DC Account | 6 | 攻擊者執行 DCSync，竊取網域雜湊 |
-| AD - SMB - Lateral Movement to File Server via Admin Share（待驗證） | 7 | 非機器帳號存取檔案伺服器的管理共用（C$／ADMIN$） |
+| AD - SMB - Lateral Movement to File Server via Admin Share（概念設計） | 7 | 非機器帳號存取檔案伺服器的管理共用（C$／ADMIN$） |
 | Endpoint - Network - rclone Connection to Non-Corporate Endpoint | 8 | rclone 對外部端點連線，機密資料可能外洩至攻擊者控制的雲端 |
 | Endpoint - VSS - Shadow Copy Deletion | 9 | 刪除備份還原點，準備勒索加密 |
 | Endpoint - Service - Backup and Database Service Stopped | 9 | 停用備份服務，確保加密過程不被干擾 |

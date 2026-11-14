@@ -3,7 +3,7 @@
     "sentinel": [
       {
         "name": "Endpoint - Defender - Malicious File Download Detected",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-execution/Endpoint%20-%20Defender%20-%20Malicious%20File%20Download%20Detected%20%28T1204.001%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-Execution/Endpoint%20-%20Defender%20-%20Malicious%20File%20Download%20Detected%20%28T1204.001%29.kql",
         "tactic": "execution",
         "status": "verified"
       }
@@ -13,16 +13,16 @@
     "sentinel": [
       {
         "name": "Endpoint - Defender - AMSI Malicious Script Blocked",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-execution/Endpoint%20-%20Defender%20-%20AMSI%20Malicious%20Script%20Blocked%20%28T1059.001%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-Execution/Endpoint%20-%20Defender%20-%20AMSI%20Malicious%20Script%20Blocked%20%28T1059.001%29.kql",
         "tactic": "execution",
         "status": "verified"
       },
       {
         "name": "Endpoint - PowerShell - Suspicious Command Execution via Run Dialog",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-execution/Endpoint%20-%20PowerShell%20-%20Suspicious%20Command%20Execution%20via%20Run%20Dialog%20%28T1059.001%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-Execution/Endpoint%20-%20PowerShell%20-%20Suspicious%20Command%20Execution%20via%20Run%20Dialog%20%28T1059.001%29.kql",
         "tactic": "execution",
-        "status": "pending",
-        "desc": "待驗證：在 Run 對話框執行含 IEX/DownloadString 的無害指令即可驗證"
+        "status": "concept",
+        "desc": "概念設計（未在 lab 驗證）。驗證方式：在 Run 對話框執行含 IEX/DownloadString 的無害指令即可驗證"
       }
     ]
   },
@@ -40,7 +40,7 @@
     "sentinel": [
       {
         "name": "IIS - w3wp - Spawning Suspicious Child Process",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-execution/IIS%20-%20w3wp%20-%20Spawning%20Suspicious%20Child%20Process%20%28T1059.003%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0002-Execution/IIS%20-%20w3wp%20-%20Spawning%20Suspicious%20Child%20Process%20%28T1059.003%29.kql",
         "tactic": "execution",
         "status": "verified"
       }
@@ -60,7 +60,7 @@
     "sentinel": [
       {
         "name": "AD - ADCS - ESC1 Certificate Request with Enrollee Supplied Subject",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20ADCS%20-%20ESC1%20Certificate%20Request%20with%20Enrollee%20Supplied%20Subject%20%28T1649%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-Credential-Access/AD%20-%20ADCS%20-%20ESC1%20Certificate%20Request%20with%20Enrollee%20Supplied%20Subject%20%28T1649%29.kql",
         "tactic": "credential-access",
         "status": "verified"
       }
@@ -80,16 +80,16 @@
     "sentinel": [
       {
         "name": "IIS - w3wp - Credential Scanning via findstr",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/IIS%20-%20w3wp%20-%20Credential%20Scanning%20via%20findstr%20%28T1552.001%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-Credential-Access/IIS%20-%20w3wp%20-%20Credential%20Scanning%20via%20findstr%20%28T1552.001%29.kql",
         "tactic": "credential-access",
         "status": "verified"
       },
       {
         "name": "AD - gMSA - Unauthorized ManagedPassword Attribute Access",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20gMSA%20-%20Unauthorized%20ManagedPassword%20Attribute%20Access%20%28T1552.001%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-Credential-Access/AD%20-%20gMSA%20-%20Unauthorized%20ManagedPassword%20Attribute%20Access%20%28T1552.001%29.kql",
         "tactic": "credential-access",
-        "status": "pending",
-        "desc": "待驗證：DC 本機已確認 4662，Sentinel 端補跑查詢"
+        "status": "concept",
+        "desc": "概念設計（未在 lab 驗證）。驗證方式：DC 本機已確認 4662，Sentinel 端補跑查詢"
       }
     ]
   },
@@ -97,25 +97,25 @@
     "sentinel": [
       {
         "name": "AD - LDAP - Enumeration Tool Execution",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/AD%20-%20LDAP%20-%20Enumeration%20Tool%20Execution%20%28T1087.002%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-Discovery/AD%20-%20LDAP%20-%20Enumeration%20Tool%20Execution%20%28T1087.002%29.kql",
         "tactic": "discovery",
         "status": "verified"
       },
       {
         "name": "AD - SharpHound - Enumeration Tool Execution",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/AD%20-%20SharpHound%20-%20Enumeration%20Tool%20Execution%20%28T1087.002%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-Discovery/AD%20-%20SharpHound%20-%20Enumeration%20Tool%20Execution%20%28T1087.002%29.kql",
         "tactic": "discovery",
         "status": "verified"
       },
       {
         "name": "AD - Recon - Anomalous LDAP Object Enumeration",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/AD%20-%20Recon%20-%20Anomalous%20LDAP%20Object%20Enumeration%20%28T1087.002%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-Discovery/AD%20-%20Recon%20-%20Anomalous%20LDAP%20Object%20Enumeration%20%28T1087.002%29.kql",
         "tactic": "discovery",
         "status": "verified"
       },
       {
         "name": "AD - Recon - Low-and-Slow LDAP Enumeration",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/AD%20-%20Recon%20-%20Low-and-Slow%20LDAP%20Enumeration%20%28T1087.002%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-Discovery/AD%20-%20Recon%20-%20Low-and-Slow%20LDAP%20Enumeration%20%28T1087.002%29.kql",
         "tactic": "discovery",
         "status": "verified"
       }
@@ -125,7 +125,7 @@
     "sentinel": [
       {
         "name": "IIS - w3wp - Network Discovery Command Execution",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-discovery/IIS%20-%20w3wp%20-%20Network%20Discovery%20Command%20Execution%20%28T1016%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0007-Discovery/IIS%20-%20w3wp%20-%20Network%20Discovery%20Command%20Execution%20%28T1016%29.kql",
         "tactic": "discovery",
         "status": "verified"
       }
@@ -193,8 +193,8 @@
         "name": "AD - SMB - Lateral Movement to File Server via Admin Share",
         "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0008-Lateral-Movement/AD%20-%20SMB%20-%20Lateral%20Movement%20to%20File%20Server%20via%20Admin%20Share%20%28T1021.002%29.kql",
         "tactic": "lateral-movement",
-        "status": "pending",
-        "desc": "待驗證：已改寫為 5140（C$/ADMIN$），需開啟 File Share 稽核後重跑"
+        "status": "concept",
+        "desc": "概念設計（未在 lab 驗證）。驗證方式：已改寫為 5140（C$/ADMIN$），需開啟 File Share 稽核後重跑"
       }
     ]
   },
@@ -202,13 +202,13 @@
     "sentinel": [
       {
         "name": "AD - DomainObject - Directory Replication by Non-DC Account",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20DomainObject%20-%20Directory%20Replication%20by%20Non-DC%20Account%20%28T1003.006%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-Credential-Access/AD%20-%20DomainObject%20-%20Directory%20Replication%20by%20Non-DC%20Account%20%28T1003.006%29.kql",
         "tactic": "credential-access",
         "status": "verified"
       },
       {
         "name": "AD - DCSync Followed by Anomalous KRBTGT Activity",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20DCSync%20Followed%20by%20Anomalous%20KRBTGT%20Activity%20%28T1003.006%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-Credential-Access/AD%20-%20DCSync%20Followed%20by%20Anomalous%20KRBTGT%20Activity%20%28T1003.006%29.kql",
         "tactic": "credential-access",
         "status": "verified"
       }
@@ -218,17 +218,17 @@
     "sentinel": [
       {
         "name": "Endpoint - LSASS - Suspicious Process Access",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/Endpoint%20-%20LSASS%20-%20Suspicious%20Process%20Access%20%28T1003.001%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-Credential-Access/Endpoint%20-%20LSASS%20-%20Suspicious%20Process%20Access%20%28T1003.001%29.kql",
         "tactic": "credential-access",
-        "status": "pending",
-        "desc": "待驗證：先查 Stage 4a 當時是否有 OpenProcessApiCall 記錄"
+        "status": "concept",
+        "desc": "概念設計（未在 lab 驗證）。驗證方式：先查 Stage 4a 當時是否有 OpenProcessApiCall 記錄"
       },
       {
         "name": "Endpoint - LSASS - Credential Dump via comsvcs MiniDump",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/Endpoint%20-%20LSASS%20-%20Credential%20Dump%20via%20comsvcs%20MiniDump%20%28T1003.001%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-Credential-Access/Endpoint%20-%20LSASS%20-%20Credential%20Dump%20via%20comsvcs%20MiniDump%20%28T1003.001%29.kql",
         "tactic": "credential-access",
-        "status": "pending",
-        "desc": "待驗證：先查 Stage 4a 當時的 rundll32 程序建立記錄"
+        "status": "concept",
+        "desc": "概念設計（未在 lab 驗證）。驗證方式：先查 Stage 4a 當時的 rundll32 程序建立記錄"
       }
     ]
   },
@@ -236,7 +236,7 @@
     "sentinel": [
       {
         "name": "AD - Kerberos - Silver Ticket Service Access Without DC Log",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20Kerberos%20-%20Silver%20Ticket%20Service%20Access%20Without%20DC%20Log%20%28T1558.002%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-Credential-Access/AD%20-%20Kerberos%20-%20Silver%20Ticket%20Service%20Access%20Without%20DC%20Log%20%28T1558.002%29.kql",
         "tactic": "credential-access",
         "status": "verified"
       }
@@ -246,19 +246,19 @@
     "sentinel": [
       {
         "name": "AD - KDC - Kerberoasting TGS Requests",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20Kerberoasting%20TGS%20Requests%20%28T1558.003%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-Credential-Access/AD%20-%20KDC%20-%20Kerberoasting%20TGS%20Requests%20%28T1558.003%29.kql",
         "tactic": "credential-access",
         "status": "verified"
       },
       {
         "name": "AD - KDC - RC4 Encrypted TGS Request Detected",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20RC4%20Encrypted%20TGS%20Request%20Detected%20%28T1558.003%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-Credential-Access/AD%20-%20KDC%20-%20RC4%20Encrypted%20TGS%20Request%20Detected%20%28T1558.003%29.kql",
         "tactic": "credential-access",
         "status": "verified"
       },
       {
         "name": "AD - KDC - Kerberoasting Multi-SPN Harvesting",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20Kerberoasting%20Multi-SPN%20Harvesting%20%28T1558.003%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-Credential-Access/AD%20-%20KDC%20-%20Kerberoasting%20Multi-SPN%20Harvesting%20%28T1558.003%29.kql",
         "tactic": "credential-access",
         "status": "verified"
       }
@@ -270,8 +270,8 @@
         "name": "AD - Delegation - RBCD Attribute Modification",
         "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0004-Privilege-Escalation/AD%20-%20Delegation%20-%20RBCD%20Attribute%20Modification%20%28T1134%29.kql",
         "tactic": "privilege-escalation",
-        "status": "pending",
-        "desc": "待驗證：在 Windows 端點以 PowerView / AD 模組寫入一次"
+        "status": "concept",
+        "desc": "概念設計（未在 lab 驗證）。驗證方式：在 Windows 端點以 PowerView / AD 模組寫入一次"
       }
     ]
   },
@@ -279,13 +279,13 @@
     "sentinel": [
       {
         "name": "AD - KDC - AS-REP Roasting Pre-Auth Disabled",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20AS-REP%20Roasting%20Pre-Auth%20Disabled%20%28T1558.004%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-Credential-Access/AD%20-%20KDC%20-%20AS-REP%20Roasting%20Pre-Auth%20Disabled%20%28T1558.004%29.kql",
         "tactic": "credential-access",
         "status": "verified"
       },
       {
         "name": "AD - KDC - AS-REP Roasting Bulk Harvesting",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20KDC%20-%20AS-REP%20Roasting%20Bulk%20Harvesting%20%28T1558.004%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-Credential-Access/AD%20-%20KDC%20-%20AS-REP%20Roasting%20Bulk%20Harvesting%20%28T1558.004%29.kql",
         "tactic": "credential-access",
         "status": "verified"
       }
@@ -295,7 +295,7 @@
     "sentinel": [
       {
         "name": "AD - Coerced Authentication - DC Outbound SMB",
-        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-credential-access/AD%20-%20Coerced%20Authentication%20-%20DC%20Outbound%20SMB%20%28T1187%29.kql",
+        "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0006-Credential-Access/AD%20-%20Coerced%20Authentication%20-%20DC%20Outbound%20SMB%20%28T1187%29.kql",
         "tactic": "credential-access",
         "status": "verified"
       }
@@ -307,15 +307,15 @@
         "name": "AD - GPO - Unauthorized Group Policy Modification (Path B)",
         "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0004-Privilege-Escalation/AD%20-%20GPO%20-%20Unauthorized%20Group%20Policy%20Modification%20%28T1484.001%29.kql",
         "tactic": "privilege-escalation",
-        "status": "pending",
-        "desc": "待驗證：補跑 DeviceFileEvents 查詢"
+        "status": "concept",
+        "desc": "概念設計（未在 lab 驗證）。驗證方式：補跑 DeviceFileEvents 查詢"
       },
       {
         "name": "AD - GPO Abuse to Endpoint Execution",
         "url": "https://github.com/dabbychiu/Purple-Team-Detection-Lab/blob/main/detections/TA0004-Privilege-Escalation/AD%20-%20GPO%20Abuse%20to%20Endpoint%20Execution%20%28T1484.001%29.kql",
         "tactic": "privilege-escalation",
-        "status": "pending",
-        "desc": "待驗證：需改用同時更新 AD 屬性與 SYSVOL 的方式觸發下游執行"
+        "status": "concept",
+        "desc": "概念設計（未在 lab 驗證）。驗證方式：需改用同時更新 AD 屬性與 SYSVOL 的方式觸發下游執行"
       }
     ]
   },
